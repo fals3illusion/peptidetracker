@@ -12,7 +12,7 @@ TZ=America/Chicago npm test >/dev/null
 echo "==> Building bundle"
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"; npm ci --silent' EXIT
 npm ci --omit=dev --silent
-tar -czf "$tmp/app.tgz" package.json package-lock.json server.js set-password.js lib public scripts node_modules CHANGELOG.md LICENSE README.md
+tar -czf "$tmp/app.tgz" package.json package-lock.json server.js set-password.js lib public scripts grafana node_modules CHANGELOG.md LICENSE README.md
 
 echo "==> Uploading and switching over"
 scp -q "$tmp/app.tgz" "$HOST:/tmp/pt-app.tgz"

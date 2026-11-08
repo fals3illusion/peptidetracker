@@ -45,7 +45,15 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/fals3illusion/peptidetra
 
 It creates an unprivileged Debian 13 container (1 core, 512 MB RAM, 4 GB disk, DHCP — answer "n" to
 change any of that), installs the latest release and starts it. Open `http://<container-ip>:3080`
-and create your admin account. First-time setup only works from your local network.
+and create your admin account (first-time setup only works from your local network), or choose
+**Restore from a PostgreSQL backup** if you're moving from another install.
+
+Everything else is set up in the app, under **⋯ → Admin** (a checklist shows what's left):
+
+- **Users** — invite people by email or create accounts with a temporary password.
+- **Email** — SMTP for invites, password resets, weekly summaries and exports.
+- **Backup & Grafana** — connect a PostgreSQL database (test the connection first), copy-paste SQL to
+  create the database and a read-only Grafana user, and download the Grafana dashboard.
 
 **Already have a Debian 12/13 machine?** Run this inside it instead:
 
@@ -90,11 +98,11 @@ Everything lives in `/var/lib/peptidetracker/` in the container (`data.json`, `u
 `photos/`). Passwords are scrypt-hashed and links/sessions are stored only as hashes. Back up the
 container with Proxmox's normal backups.
 
-**PostgreSQL mirror (optional):** add `PG_URL=postgres://user:password@host:5432/database` to
-`/etc/peptidetracker/env` and `systemctl restart peptidetracker`. Every change is copied to `wt_*`
-tables; on a fresh install with an empty data folder the app restores from it. Photos are not
-copied. A Grafana dashboard is in [`grafana/`](grafana/) (import the JSON, pick your PostgreSQL
-data source; read it with a read-only database user).
+**PostgreSQL backup (optional):** ⋯ → Admin → Backup & Grafana. Every change is copied to `wt_*`
+tables within seconds; a new install can restore everything from it on the setup screen. Photos
+are not copied. (You can also set `PG_URL=postgres://user:password@host:5432/database` in
+`/etc/peptidetracker/env` instead; the app then restores from it automatically on an empty data
+folder.) The Grafana dashboard is in [`grafana/`](grafana/) and downloadable from the same page.
 
 **Forgot the admin password?** In the container:
 

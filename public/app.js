@@ -134,7 +134,7 @@ async function refresh() {
 let setupMode = false;
 let role = null;
 let firstName = '';
-const AUTH_CARDS = ['authForm', 'forgotForm', 'inviteForm', 'resetForm', 'linkErr', 'newPwForm'];
+const AUTH_CARDS = ['authForm', 'forgotForm', 'inviteForm', 'resetForm', 'linkErr', 'newPwForm', 'restoreForm'];
 function showCard(id) {
   $('appView').hidden = true;
   $('adminView').hidden = true;
@@ -152,6 +152,7 @@ function showAuth(setup) {
   $('authBtn').textContent = setup ? 'Create login' : 'Sign in';
   $('confirmWrap').hidden = !setup;
   $('forgotLink').hidden = setup;
+  $('restoreLink').hidden = !setup;
   $('authPass').autocomplete = setup ? 'new-password' : 'current-password';
   $('authPass2').required = setup;
   $('authMsg').textContent = '';
@@ -2000,6 +2001,115 @@ function fillMail(c) {
   $('mailClear').hidden = !c.configured;
 }
 const mailMsg = (text, ok) => { $('mailMsg').className = `msg${ok ? ' ok' : ''}`; $('mailMsg').textContent = text; };
+// ---------- admin: database backup & Grafana ----------
+const dbForm = px => ({
+  host: $(`${px}Host`).value.trim(), port: $(`${px}Port`).value.trim(), database: $(`${px}Db`).value.trim(),
+  user: $(`${px}User`).value.trim(), password: $(`${px}Pass`).value, ssl: $(`${px}Ssl`).checked,
+});
+const bkMsg = (text, ok) => { $('bkMsg').className = `msg${ok ? ' ok' : ''}`; $('bkMsg').textContent = text; };
+const randomWord = () => [...crypto.getRandomValues(new Uint8Array(12))].map(b => 'abcdefghjkmnpqrstuvwxyz23456789'[b % 31]).join('');
+const sqlName = v => (/^[a-z_][a-z0-9_]*$/.test(v) ? v : `"${v.replace(/"/g, '""')}"`);
+let gfPass = '', bkPass = '';
+function updateBackupHelp() {
+  const db = $('bkDb').value.trim() || 'peptidetracker', user = $('bkUser').value.trim() || 'peptidetracker';
+  $('bkSql').textContent = `CREATE USER ${sqlName(user)} WITH PASSWORD '${bkPass}';\nCREATE DATABASE ${sqlName(db)} OWNER ${sqlName(user)};`;
+  $('gfSql').textContent = `CREATE USER grafana_pt WITH PASSWORD '${gfPass}';
+GRANT CONNECT ON DATABASE ${sqlName(db)} TO grafana_pt;
+\\c ${sqlName(db)}
+GRANT USAGE ON SCHEMA public TO grafana_pt;
+GRANT SELECT ON wt_entries, wt_shots, wt_supplies, wt_people, wt_settings TO grafana_pt;`;
+  $('gfHost').textContent = `${$('bkHost').value.trim() || 'your-db'}:${$('bkPort').value.trim() || 5432}`;
+  $('gfDb').textContent = db;
+}
+function fillBackup(b) {
+  const on = b.enabled;
+  $('bkStatus').innerHTML = !on ? '<span class="muted">Off</span>'
+    : b.lastError ? `<span class="bad">On, but failing: ${esc(b.lastError)}</span>`
+    : `<span class="ok-text">On</span> · ${b.lastOk ? `last copied ${esc(timeAgo(b.lastOk))}` : 'starting…'}${b.host ? ` · ${esc(b.user)}@${esc(b.host)}/${esc(b.database)}` : ''}`;
+  $('bkEnv').hidden = !b.envManaged;
+  $('bkForm').hidden = b.envManaged;
+  if (b.mode === 'app') {
+    $('bkHost').value = b.host; $('bkPort').value = b.port; $('bkDb').value = b.database; $('bkUser').value = b.user; $('bkSsl').checked = b.ssl;
+    $('bkPass').value = ''; $('bkPass').placeholder = b.hasPassword ? '(saved — leave blank to keep)' : '';
+  }
+  $('bkSave').textContent = b.mode === 'app' ? 'Save changes' : 'Save & turn on';
+  $('bkNow').hidden = $('bkOff').hidden = b.mode !== 'app';
+  $('gfDownload').classList.toggle('disabled', !on);
+  updateBackupHelp();
+}
+async function loadBackupTab() {
+  bkMsg('');
+  gfPass ||= randomWord(); bkPass ||= randomWord();
+  try { fillBackup(await api('GET', '/api/admin/backup')); } catch (e) { bkMsg(e.message); }
+}
+for (const id of ['bkHost', 'bkPort', 'bkDb', 'bkUser']) $(id).addEventListener('input', updateBackupHelp);
+$('bkTest').addEventListener('click', async () => {
+  bkMsg('Connecting…', true);
+  try {
+    const r = await api('POST', '/api/admin/backup/test', dbForm('bk'));
+    bkMsg(r.existing ? `Connected. This database already has a backup (${r.existing.users} people, ${r.existing.shots} shots, ${r.existing.entries} weigh-ins).` : 'Connected — the database is ready.', true);
+  } catch (e) { bkMsg(e.message); }
+});
+async function saveBackup(overwrite = false) {
+  bkMsg('Saving and copying everything…', true);
+  const res = await fetch('/api/admin/backup', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...dbForm('bk'), overwrite }) });
+  const r = await res.json().catch(() => ({}));
+  if (res.status === 409 && r.existing) {
+    const e = r.existing;
+    if (confirm(`That database already has a PeptideTracker backup: ${e.users} people, ${e.shots} shots, ${e.entries} weigh-ins.\n\nReplace it with this install's data? (Cancel to keep it. To bring that data here instead, use "Restore from a backup" on a fresh install.)`)) return saveBackup(true);
+    return bkMsg('Nothing changed.');
+  }
+  if (!res.ok) return bkMsg(r.error || `Failed (${res.status})`);
+  fillBackup(r);
+  bkMsg('Backup is on. Everything has been copied.', true);
+  refresh().catch(() => {});
+}
+$('bkForm').addEventListener('submit', ev => { ev.preventDefault(); saveBackup().catch(e => bkMsg(e.message)); });
+for (const id of ['bkNow', 'bkNowEnv']) $(id).addEventListener('click', async () => {
+  try { fillBackup(await api('POST', '/api/admin/backup/now', {})); bkMsg('Backed up.', true); } catch (e) { bkMsg(e.message); }
+});
+$('bkOff').addEventListener('click', async () => {
+  if (!confirm('Turn off the database backup? What’s already in the database is kept; it just stops getting updates.')) return;
+  try { fillBackup(await api('DELETE', '/api/admin/backup')); bkMsg('Backup turned off.', true); refresh().catch(() => {}); } catch (e) { bkMsg(e.message); }
+});
+
+// ---------- admin: getting-set-up checklist ----------
+async function renderChecklist() {
+  if (role !== 'admin') return;
+  let people = 1;
+  try { people = (await api('GET', '/api/users')).length; } catch {}
+  const items = [
+    [true, 'Admin account created'],
+    [state.mailReady, 'Email for invites, password resets and summaries', 'email', 'Set up email'],
+    [people > 1, 'Invite the people who’ll use it (optional)', 'users', 'Add people'],
+    [!!state.sync?.enabled, 'Database backup to PostgreSQL (optional)', 'backup', 'Set up backup'],
+    [location.protocol === 'https:', 'HTTPS address — needed for the phone app and shot reminders (see the README: reverse proxy)'],
+  ];
+  const done = items.filter(i => i[0]).length;
+  $('setupChecklist').hidden = done === items.length;
+  $('checklistItems').innerHTML = items.map(([ok, text, tab, btn]) => `<li class="${ok ? 'done' : ''}"><span class="tick">${ok ? '✓' : '○'}</span><span>${esc(text)}</span>${!ok && tab ? `<button type="button" class="linkish" data-goto-tab="${tab}">${esc(btn)} ›</button>` : ''}</li>`).join('');
+}
+$('checklistItems').addEventListener('click', ev => {
+  const b = ev.target.closest('[data-goto-tab]');
+  if (b) location.hash = b.dataset.gotoTab === 'users' ? '#admin' : `#admin/${b.dataset.gotoTab}`;
+});
+
+// ---------- first-time setup: restore from a backup ----------
+$('restoreLink').addEventListener('click', () => { showCard('restoreForm'); $('restoreMsg').textContent = ''; $('rsHost').focus(); });
+$('restoreBack').addEventListener('click', () => showAuth(true));
+$('restoreForm').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  $('restoreMsg').className = 'msg'; $('restoreMsg').textContent = 'Connecting and copying…';
+  $('restoreBtn').disabled = true;
+  try {
+    const r = await api('POST', '/api/setup/restore', dbForm('rs'));
+    showAuth(false);
+    $('authMsg').className = 'msg ok';
+    $('authMsg').textContent = `Restored ${r.users} ${r.users === 1 ? 'person' : 'people'}, ${r.shots} shots and ${r.entries} weigh-ins. Sign in with your usual login.`;
+  } catch (e) { $('restoreMsg').textContent = e.message; }
+  finally { $('restoreBtn').disabled = false; }
+});
+
 async function loadEmailTab() {
   mailMsg('');
   $('mTestTo').value = '';
@@ -2508,7 +2618,7 @@ $('invBack').addEventListener('click', async () => {
 });
 
 // ---------- admin page (#admin, #admin/email) ----------
-const ADMIN_TABS = { users: { panel: 'adminUsers', load: loadUsersTab }, email: { panel: 'adminEmail', load: loadEmailTab } };
+const ADMIN_TABS = { users: { panel: 'adminUsers', load: loadUsersTab }, email: { panel: 'adminEmail', load: loadEmailTab }, backup: { panel: 'adminBackup', load: loadBackupTab } };
 function route() {
   if ($('authView').hidden === false) return;
   const page = { '#inventory': 'invView', '#meds': 'medsView', '#photos': state.settings.photos === true ? 'photosView' : null }[location.hash] || null;
@@ -2536,6 +2646,7 @@ function route() {
   }
   window.scrollTo(0, 0);
   ADMIN_TABS[tab].load();
+  renderChecklist();
 }
 window.addEventListener('hashchange', route);
 $('adminBtn').addEventListener('click', () => {

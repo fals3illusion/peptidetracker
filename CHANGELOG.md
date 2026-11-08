@@ -19,3 +19,6 @@ All notable changes to PeptideTracker. Run `update` in the container to get the 
 - Multiple users with email invites and password resets; optional PostgreSQL mirror and Grafana dashboard.
 - Proxmox VE installer, `update` command with automatic backup and rollback, "update available" notice for the admin.
 - One-time disclaimer for each person.
+- Admin → Backup & Grafana: connect a PostgreSQL backup from the app (with a connection test), copy-paste setup SQL, and download the Grafana dashboard.
+- Restore a new install from a PostgreSQL backup on the setup screen.
+- Admin setup checklist.

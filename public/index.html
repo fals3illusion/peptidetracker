@@ -32,7 +32,26 @@
     </div>
     <button class="primary" type="submit" id="authBtn">Sign in</button>
     <button class="linkish" type="button" id="forgotLink">Forgot password?</button>
+    <button class="linkish" type="button" id="restoreLink" hidden>Moving from another install? Restore from a PostgreSQL backup</button>
     <div class="msg" id="authMsg" role="alert"></div>
+  </form>
+
+  <!-- First-time setup: restore from a PostgreSQL backup -->
+  <form id="restoreForm" class="card auth-card" hidden>
+    <img src="icon.svg" alt="" width="44" height="44">
+    <h1>Restore from a backup</h1>
+    <p class="muted">Connect to the PostgreSQL database your other PeptideTracker backed up to. Everything — people, logins, shots, vials, settings and email setup — is copied here, and this install keeps backing up to it.</p>
+      <div class="grid2">
+        <div><label for="rsHost">Server address</label><input id="rsHost" autocapitalize="none" spellcheck="false" placeholder="192.168.1.20" required></div>
+        <div><label for="rsPort">Port</label><input id="rsPort" type="number" inputmode="numeric" min="1" max="65535" placeholder="5432"></div>
+        <div><label for="rsDb">Database name</label><input id="rsDb" autocapitalize="none" spellcheck="false" placeholder="peptidetracker" required></div>
+        <div><label for="rsUser">Username</label><input id="rsUser" autocapitalize="none" spellcheck="false" autocomplete="off" placeholder="peptidetracker" required></div>
+        <div class="full"><label for="rsPass">Password</label><input id="rsPass" type="password" autocomplete="new-password"></div>
+      </div>
+      <label class="check"><input type="checkbox" id="rsSsl"> Use SSL (needed for most cloud databases)</label>
+    <button class="primary" type="submit" id="restoreBtn">Restore</button>
+    <button class="linkish" type="button" id="restoreBack">‹ Back to creating a new login</button>
+    <div class="msg" id="restoreMsg" role="alert"></div>
   </form>
 
   <!-- Forgot password -->
@@ -468,7 +487,12 @@
   <nav class="tabs" role="tablist" aria-label="Admin sections">
     <button type="button" role="tab" data-tab="users" aria-selected="true">Users</button>
     <button type="button" role="tab" data-tab="email" aria-selected="false">Email</button>
+    <button type="button" role="tab" data-tab="backup" aria-selected="false">Backup &amp; Grafana</button>
   </nav>
+  <section class="card" id="setupChecklist" hidden>
+    <h2>Getting set up</h2>
+    <ul class="checklist" id="checklistItems"></ul>
+  </section>
   <section class="card" id="adminUsers" role="tabpanel">
     <h2>Users</h2>
 
@@ -543,6 +567,51 @@
     </div>
   </form>
   </section>
+  <section id="adminBackup" role="tabpanel" hidden>
+  <section class="card">
+    <h2>Database backup (PostgreSQL)</h2>
+    <p class="muted small help">Optional. Every change is copied to a PostgreSQL database within a few seconds — your safety net if this container is lost, an easy way to move to a new one (choose “Restore from a backup” when setting up), and what Grafana reads. Your data still lives here; the app works the same with or without it.</p>
+    <div class="backup-status" id="bkStatus"></div>
+    <div id="bkEnv" hidden>
+      <p class="small">This backup is set in the server’s settings file (<code>PG_URL</code> in <code>/etc/peptidetracker/env</code>), so it’s changed there.</p>
+      <button type="button" id="bkNowEnv">Back up now</button>
+    </div>
+    <form id="bkForm">
+      <details class="howto">
+        <summary>Need a database? Run this on your PostgreSQL server</summary>
+        <pre id="bkSql"></pre>
+        <p class="muted small">Also allow this container’s IP in <code>pg_hba.conf</code> and make sure PostgreSQL listens on the network (<code>listen_addresses</code>). Use an empty database, or one this app already backs up to.</p>
+      </details>
+      <div class="grid2">
+        <div><label for="bkHost">Server address</label><input id="bkHost" autocapitalize="none" spellcheck="false" placeholder="192.168.1.20" required></div>
+        <div><label for="bkPort">Port</label><input id="bkPort" type="number" inputmode="numeric" min="1" max="65535" placeholder="5432"></div>
+        <div><label for="bkDb">Database name</label><input id="bkDb" autocapitalize="none" spellcheck="false" placeholder="peptidetracker" required></div>
+        <div><label for="bkUser">Username</label><input id="bkUser" autocapitalize="none" spellcheck="false" autocomplete="off" placeholder="peptidetracker" required></div>
+        <div class="full"><label for="bkPass">Password</label><input id="bkPass" type="password" autocomplete="new-password"></div>
+      </div>
+      <label class="check"><input type="checkbox" id="bkSsl"> Use SSL (needed for most cloud databases)</label>
+      <div class="msg" id="bkMsg" role="alert"></div>
+      <div class="row-btns">
+        <button type="button" id="bkTest">Test connection</button>
+        <button type="submit" class="primary" id="bkSave">Save &amp; turn on</button>
+        <button type="button" id="bkNow" hidden>Back up now</button>
+        <button type="button" class="danger-link" id="bkOff" hidden>Turn off</button>
+      </div>
+    </form>
+  </section>
+  <section class="card">
+    <h2>Grafana dashboard</h2>
+    <p class="muted small help">Charts of weight, doses, shots and spending for each person, read from the backup database. Turn on the database backup first.</p>
+    <ol class="steps">
+      <li><b>Make a read-only database user</b> for Grafana (on your PostgreSQL server):<pre id="gfSql"></pre></li>
+      <li><b>In Grafana:</b> Connections → Data sources → Add → PostgreSQL. Host <code id="gfHost">your-db:5432</code>, database <code id="gfDb">peptidetracker</code>, user <code>grafana_pt</code>, the password above, TLS off (unless you use SSL).</li>
+      <li><b>Import the dashboard:</b> Dashboards → New → Import → upload this file, then pick the data source.
+        <div class="row-btns"><a class="btn" id="gfDownload" href="/api/admin/grafana-dashboard" download>Download dashboard</a></div></li>
+    </ol>
+    <p class="muted small">The dashboard has a “Person” picker. The read-only user can’t see passwords — Grafana only reads the <code>wt_people</code> and <code>wt_settings</code> views plus the data tables.</p>
+  </section>
+  </section>
+
 </main>
 
 <!-- Add / edit a vial or box of pens -->

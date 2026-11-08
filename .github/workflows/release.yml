@@ -45,7 +45,7 @@ jobs:
         run: |
           npm ci --omit=dev
           tar -czf peptidetracker.tar.gz package.json package-lock.json server.js set-password.js \
-            lib public scripts node_modules CHANGELOG.md LICENSE README.md
+            lib public scripts grafana node_modules CHANGELOG.md LICENSE README.md
           sha256sum peptidetracker.tar.gz | awk '{print $1}' > peptidetracker.tar.gz.sha256
       - name: Release notes from CHANGELOG.md
         run: |
