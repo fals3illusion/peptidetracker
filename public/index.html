@@ -1,0 +1,806 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#151514" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PeptideTracker">
+<title>PeptideTracker</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Login / first-time setup -->
+<div id="authView" class="auth" hidden>
+  <form id="authForm" class="card auth-card">
+    <img src="icon.svg" alt="" width="44" height="44">
+    <h1 id="authTitle">Sign in</h1>
+    <p id="authHint" class="muted"></p>
+    <label for="authUser" id="authUserLabel">Username or email</label>
+    <input id="authUser" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+    <label for="authPass">Password</label>
+    <input id="authPass" type="password" autocomplete="current-password" required>
+    <div id="confirmWrap" hidden>
+      <label for="authPass2">Confirm password</label>
+      <input id="authPass2" type="password" autocomplete="new-password">
+    </div>
+    <button class="primary" type="submit" id="authBtn">Sign in</button>
+    <button class="linkish" type="button" id="forgotLink">Forgot password?</button>
+    <div class="msg" id="authMsg" role="alert"></div>
+  </form>
+
+  <!-- Forgot password -->
+  <form id="forgotForm" class="card auth-card" hidden>
+    <img src="icon.svg" alt="" width="44" height="44">
+    <h1>Forgot password</h1>
+    <p class="muted">Enter your username or email. If your account has an email address, we’ll send you a link to choose a new password.</p>
+    <label for="forgotLogin">Username or email</label>
+    <input id="forgotLogin" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+    <button class="primary" type="submit">Send reset link</button>
+    <button class="linkish" type="button" data-back>Back to sign in</button>
+    <div class="msg" id="forgotMsg" role="status"></div>
+  </form>
+
+  <!-- Accept an email invite -->
+  <form id="inviteForm" class="card auth-card" hidden>
+    <img src="icon.svg" alt="" width="44" height="44">
+    <h1>Set up your account</h1>
+    <p class="muted">You were invited as <b id="inviteEmail"></b>. Pick a username and password — you can sign in with either your username or this email.</p>
+    <div class="grid2">
+      <div><label for="invFirst">First name</label><input id="invFirst" autocomplete="given-name" required maxlength="60"></div>
+      <div><label for="invLast">Last name</label><input id="invLast" autocomplete="family-name" maxlength="60"></div>
+    </div>
+    <label for="invUser">Username</label>
+    <input id="invUser" autocomplete="username" autocapitalize="none" spellcheck="false" required maxlength="64" placeholder="letters, numbers, . _ -">
+    <label for="invPass">Password</label>
+    <input id="invPass" type="password" autocomplete="new-password" minlength="8" required>
+    <label for="invPass2">Confirm password</label>
+    <input id="invPass2" type="password" autocomplete="new-password" minlength="8" required>
+    <button class="primary" type="submit">Create my account</button>
+    <div class="msg" id="inviteMsg" role="alert"></div>
+  </form>
+
+  <!-- Reset link from "forgot password" -->
+  <form id="resetForm" class="card auth-card" hidden>
+    <img src="icon.svg" alt="" width="44" height="44">
+    <h1>Choose a new password</h1>
+    <p class="muted">For <b id="resetUser"></b>.</p>
+    <input autocomplete="username" id="resetUserField" hidden>
+    <label for="resetPass">New password</label>
+    <input id="resetPass" type="password" autocomplete="new-password" minlength="8" required>
+    <label for="resetPass2">Confirm new password</label>
+    <input id="resetPass2" type="password" autocomplete="new-password" minlength="8" required>
+    <button class="primary" type="submit">Save and sign in</button>
+    <div class="msg" id="resetMsg" role="alert"></div>
+  </form>
+
+  <!-- Link problem (expired / used) -->
+  <div id="linkErr" class="card auth-card" hidden>
+    <img src="icon.svg" alt="" width="44" height="44">
+    <h1>Link not valid</h1>
+    <p class="muted" id="linkErrMsg"></p>
+    <button class="primary" type="button" data-back>Go to sign in</button>
+  </div>
+
+  <!-- First sign-in with a temporary password -->
+  <form id="newPwForm" class="card auth-card" hidden>
+    <img src="icon.svg" alt="" width="44" height="44">
+    <h1>Choose your password</h1>
+    <p class="muted">Welcome, <b id="newPwName"></b>! You signed in with a temporary password. Pick your own to continue.</p>
+    <input autocomplete="username" id="newPwUser" hidden>
+    <label for="newPw1">New password</label>
+    <input id="newPw1" type="password" autocomplete="new-password" minlength="8" required>
+    <label for="newPw2">Confirm new password</label>
+    <input id="newPw2" type="password" autocomplete="new-password" minlength="8" required>
+    <button class="primary" type="submit">Save and continue</button>
+    <button class="linkish" type="button" id="newPwLogout">Sign out</button>
+    <div class="msg" id="newPwMsg" role="alert"></div>
+  </form>
+</div>
+
+<main id="appView" hidden>
+  <header>
+    <h1>PeptideTracker</h1>
+    <div class="header-actions">
+      <select id="unit" class="unit-sel" aria-label="Units">
+        <option value="lb">lb</option>
+        <option value="kg">kg</option>
+      </select>
+      <details class="menu">
+        <summary aria-label="Account menu">⋯<span class="warn-dot" id="syncDot" hidden></span></summary>
+        <div class="menu-pop">
+          <div class="muted small" id="whoami"></div>
+          <div class="small" id="syncStatus"></div>
+          <div class="small" id="versionLine"></div>
+          <button type="button" id="accountBtn">My account</button>
+          <button type="button" id="settingsBtn">Settings</button>
+          <button type="button" id="medsBtn">Medications</button>
+          <button type="button" id="invBtn">Inventory</button>
+          <button type="button" id="photosBtn" hidden>Progress photos</button>
+          <button type="button" id="adminBtn" hidden>Admin</button>
+          <button type="button" id="pwBtn">Change password</button>
+          <button type="button" id="logoutBtn">Log out</button>
+        </div>
+      </details>
+    </div>
+  </header>
+
+  <div id="banners" aria-live="polite"></div>
+
+  <section class="card weight-sec" id="logCard">
+    <h2 id="logTitle">Log weight</h2>
+    <form id="logForm" class="row log-row" autocomplete="off">
+      <div>
+        <label for="weight">Weight (<span class="u">lb</span>)</label>
+        <input id="weight" type="number" inputmode="decimal" step="0.1" required placeholder="0.0">
+      </div>
+      <div>
+        <label for="when">When</label>
+        <input id="when" type="datetime-local" required>
+      </div>
+      <button class="primary" type="submit" id="logBtn">Save</button>
+    </form>
+    <div class="note-wrap">
+      <input id="note" form="logForm" maxlength="200" placeholder="Note (optional)" aria-label="Note">
+    </div>
+    <div class="edit-bar" id="editBar" hidden>
+      <span class="muted small">Editing a past weigh-in</span>
+      <button type="button" class="linkish" id="cancelEdit">Cancel</button>
+    </div>
+    <div class="msg" id="logMsg" role="status"></div>
+  </section>
+
+  <section class="card" id="nextCard" hidden>
+    <h2>Next shots</h2>
+    <div id="nextList"></div>
+  </section>
+
+  <section class="card hero weight-sec" id="hero" aria-live="polite"></section>
+
+  <div class="stats weight-sec" id="stats"></div>
+
+  <section class="card weight-sec" id="progressCard" hidden>
+    <h2>Progress</h2>
+    <div id="progress"></div>
+  </section>
+
+  <section class="card weight-sec" id="chartCard">
+    <h2 id="chartTitle">Weight over time</h2>
+    <div class="chart-wrap">
+      <svg id="chart" role="img" aria-labelledby="chartTitle"></svg>
+      <div class="tooltip" id="tip"></div>
+    </div>
+    <p class="muted small chart-key" id="chartKey"></p>
+  </section>
+
+  <section class="card weight-sec" id="doseCard" hidden>
+    <h2>Dose &amp; results</h2>
+    <div id="doseResults"></div>
+    <p class="muted small help">Average weight change per week while on each dose (a straight-line fit through your weigh-ins).</p>
+  </section>
+
+  <section class="card" id="shotCard">
+    <div class="card-head">
+      <h2>Shots &amp; vials</h2>
+      <div class="btns">
+        <button type="button" id="addSupplyBtn">+ Vial</button>
+        <button type="button" class="primary" id="addShotBtn">Log shot</button>
+      </div>
+    </div>
+    <div id="shotSummary"></div>
+    <h3 class="sub-h">Vials &amp; pens</h3>
+    <div id="supplyList"></div>
+    <h3 class="sub-h">Dose plan</h3>
+    <div id="planView"></div>
+    <div id="protoWrap" hidden>
+      <h3 class="sub-h">Other medications</h3>
+      <div id="protoView"></div>
+    </div>
+    <h3 class="sub-h">Shots</h3>
+    <div id="shotList"></div>
+  </section>
+
+  <section class="card weight-sec" id="goalCard">
+    <h2>Goal</h2>
+    <form id="goalForm" class="row goal-row">
+      <div>
+        <label for="goal">Goal weight (<span class="u">lb</span>)</label>
+        <input id="goal" type="number" inputmode="decimal" step="0.1" placeholder="e.g. 180">
+      </div>
+      <div>
+        <label for="goalDate">Target date (optional)</label>
+        <input id="goalDate" type="date">
+      </div>
+      <button type="submit">Save goal</button>
+    </form>
+    <div class="msg" id="goalMsg" role="status"></div>
+  </section>
+
+  <section class="card weight-sec" id="historyCard">
+    <h2>History</h2>
+    <div id="history"></div>
+    <div class="foot">
+      <button class="linkish" id="exportBtn" type="button">Download CSV</button>
+      <span id="count" class="muted small"></span>
+    </div>
+  </section>
+
+  <p class="disclaimer">PeptideTracker is a personal logging tool for educational and research purposes — not medical advice. Projections are estimates from your logged trend. Always confirm doses and syringe units with your prescriber or pharmacist.</p>
+</main>
+
+<!-- Medications page -->
+<main id="medsView" hidden>
+  <header class="admin-head">
+    <button type="button" class="back-btn" id="medsBack" aria-label="Back to tracker">‹ Back</button>
+    <h1>Medications</h1>
+    <span class="spacer"></span>
+    <button type="button" class="primary" id="medsAdd">+ Add medication</button>
+  </header>
+  <div id="medsList"></div>
+  <details class="finished" id="medsHiddenWrap" hidden><summary id="medsHiddenSum">Hidden</summary><div id="medsHidden"></div></details>
+</main>
+
+<!-- Medication editor -->
+<dialog id="medDialog">
+  <form id="medForm" method="dialog">
+    <h2 id="medTitle">Medication</h2>
+    <label for="mdName">Name</label>
+    <input id="mdName" list="medNames" maxlength="60" required placeholder="e.g. BPC-157">
+    <div class="name-hint" id="mdNameHint" hidden></div>
+    <fieldset class="seg sched" id="mdType">
+      <legend>Type</legend>
+      <label><input type="radio" name="sSched" value="main"> My main GLP-1 — uses my shot day and dose plan</label>
+      <label><input type="radio" name="sSched" value="own"> Its own schedule (peptides, etc.)</label>
+    </fieldset>
+    <div id="schedFields" hidden>
+      <div class="grid2">
+        <div>
+          <label for="pFreq">How often</label>
+          <select id="pFreq">
+            <option value="daily">Every day</option>
+            <option value="days">Certain days of the week</option>
+            <option value="every">Every few days</option>
+            <option value="asneeded">As needed (no reminders)</option>
+          </select>
+        </div>
+        <div><label for="pStart">Starting</label><input id="pStart" type="date"></div>
+        <div class="full" id="pDaysWrap" hidden>
+          <div class="day-picks" id="pDays"></div>
+        </div>
+        <div id="pEveryWrap" hidden><label for="pEvery">Every how many days</label><input id="pEvery" type="number" inputmode="numeric" min="1" max="90" step="1" value="2"></div>
+        <div><label for="pAmount">Dose</label><input id="pAmount" type="number" inputmode="decimal" step="any" min="0" placeholder="e.g. 10"></div>
+        <div>
+          <label for="pUnit">Measured in</label>
+          <select id="pUnit"><option value="units">units (syringe)</option><option value="mg">mg</option></select>
+        </div>
+        <div class="full" id="pRefWrap">
+          <label for="pRefConc">Units are measured on a vial of (mg/mL)</label>
+          <input id="pRefConc" type="number" inputmode="decimal" step="any" min="0" placeholder="e.g. 3.33">
+          <p class="muted small help">Units only equal a set amount of drug for one vial strength. If a later vial is stronger or weaker, the app converts so you get the same mg.</p>
+        </div>
+      </div>
+      <label class="check"><input type="checkbox" id="pTitrate"> Increase the dose over time</label>
+      <div class="grid2" id="pTitrateFields" hidden>
+        <div><label for="pStep">Increase by</label><input id="pStep" type="number" inputmode="decimal" step="any" min="0"></div>
+        <div><label for="pStepEvery">After every … doses</label><input id="pStepEvery" type="number" inputmode="numeric" step="1" min="1" value="7"></div>
+        <div><label for="pMax">Up to (max, optional)</label><input id="pMax" type="number" inputmode="decimal" step="any" min="0"></div>
+      </div>
+      <div class="calc" id="schedPreview" aria-live="polite"></div>
+    </div>
+    <div id="mainFields">
+      <p class="muted small help" id="mainShared"></p>
+    <label for="setShotDay">Shot day</label>
+    <select id="setShotDay">
+      <option value="">Not set (guess from my history)</option>
+      <option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option>
+      <option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option>
+      <option value="6">Saturday</option>
+    </select>
+    <p class="muted small help">Shows a “Shot day” banner that day, and an overdue reminder if you miss it.</p>
+    <fieldset class="seg plan-fields">
+      <legend>Dose plan</legend>
+      <label class="check"><input type="checkbox" id="planOn"> Recommend my dose and step it up on schedule</label>
+      <div id="planBody">
+        <div class="grid2">
+          <div><label for="planStart">Plan start date</label><input id="planStart" type="date"></div>
+          <div><label for="planStartDose">Starting dose (mg)</label><input id="planStartDose" type="number" inputmode="decimal" step="any" min="0"></div>
+          <div><label for="planStep">Increase by (mg)</label><input id="planStep" type="number" inputmode="decimal" step="any" min="0"></div>
+          <div><label for="planEvery">Shots at each dose</label><input id="planEvery" type="number" inputmode="numeric" step="1" min="1" max="12"></div>
+          <div><label for="planMax">Max dose (mg)</label><input id="planMax" type="number" inputmode="decimal" step="any" min="0"></div>
+        </div>
+        <p class="muted small help">Example: start 2.5 mg, +2.5 mg after every 4 weekly shots, never above your max. Shots before the start date are ignored, so you can restart the plan after a break. Always follow your prescriber’s instructions.</p>
+      </div>
+    </fieldset>
+    </div>
+    <fieldset class="seg">
+      <legend>Injection sites for this medication</legend>
+      <div class="site-grid" id="mdSites"></div>
+      <div class="add-site"><input id="mdNewSite" maxlength="30" placeholder="Add a site, e.g. Love handle – left"><button type="button" id="mdAddSite">Add</button></div>
+      <p class="muted small help">“Log shot” suggests the next ticked site in order. Custom sites can be used by all medications; × removes one everywhere.</p>
+    </fieldset>
+    <fieldset class="seg">
+      <legend>New vial defaults</legend>
+      <div class="grid2">
+        <div><label for="mdVialMg">Powder (mg)</label><input id="mdVialMg" type="number" inputmode="decimal" step="any" min="0"></div>
+        <div><label for="mdVialWater">Water (mL)</label><input id="mdVialWater" type="number" inputmode="decimal" step="any" min="0"></div>
+        <div><label for="mdVialPrice">Price ($)</label><input id="mdVialPrice" type="number" inputmode="decimal" step="any" min="0"></div>
+        <div><label for="mdUseWithin">Use within (days)</label><input id="mdUseWithin" type="number" inputmode="numeric" step="1" min="1" max="365" placeholder="optional"></div>
+      </div>
+      <p class="muted small help">Filled in for you when you add a new vial of this medication. “Use within” warns you before a mixed vial or pen cartridge goes past its beyond-use date — check your pharmacy’s label.</p>
+    </fieldset>
+    <fieldset class="seg" id="mdReorderBox">
+      <legend>Reordering</legend>
+      <label for="mdLead">Order this many days before running out</label>
+      <input id="mdLead" type="number" inputmode="numeric" step="1" min="0" max="90">
+      <p class="muted small help" id="mdLeadHelp"></p>
+    </fieldset>
+    <div class="msg" id="medMsg" role="alert"></div>
+    <div class="dialog-actions">
+      <button type="button" class="danger-link" id="medHide" hidden>Hide</button>
+      <span class="spacer"></span>
+      <button type="button" id="medCancel">Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Inventory page -->
+<main id="photosView" hidden>
+  <header class="admin-head">
+    <button type="button" class="back-btn" id="photosBack" aria-label="Back to tracker">‹ Back</button>
+    <h1>Progress photos</h1>
+    <span class="spacer"></span>
+    <label class="primary file-btn">+ Add photo<input type="file" id="photoFile" accept="image/*" hidden></label>
+  </header>
+  <section class="card" id="compareCard" hidden>
+    <h2>Before &amp; after</h2>
+    <div class="compare">
+      <figure><select id="cmpA" aria-label="Before photo"></select><img id="cmpImgA" alt="Before"><figcaption id="cmpCapA"></figcaption></figure>
+      <figure><select id="cmpB" aria-label="After photo"></select><img id="cmpImgB" alt="After"><figcaption id="cmpCapB"></figcaption></figure>
+    </div>
+  </section>
+  <section class="card">
+    <h2>All photos</h2>
+    <div class="photo-grid" id="photoGrid"></div>
+    <p class="muted small help">Only you can see these. They’re stored on your PeptideTracker server (not in the database backup) and shrunk to save space.</p>
+  </section>
+</main>
+
+<dialog id="photoDialog">
+  <form id="photoForm" method="dialog">
+    <h2>Photo</h2>
+    <img id="photoBig" class="photo-big" alt="">
+    <div class="grid2">
+      <div><label for="phDate">Date</label><input id="phDate" type="date" required></div>
+      <div><label for="phNote">Note</label><input id="phNote" maxlength="200" placeholder="Front, side…"></div>
+    </div>
+    <div class="msg" id="photoMsg" role="alert"></div>
+    <div class="dialog-actions">
+      <button type="button" class="danger-link" id="photoDelete">Delete</button>
+      <span class="spacer"></span>
+      <button type="button" id="photoCancel">Close</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<main id="invView" hidden>
+  <header class="admin-head">
+    <button type="button" class="back-btn" id="invBack" aria-label="Back to tracker">‹ Back</button>
+    <h1>Inventory</h1>
+    <span class="spacer"></span>
+    <button type="button" class="primary" id="invAdd">+ Add item</button>
+  </header>
+  <div id="invAlerts"></div>
+  <div class="stats" id="invStats"></div>
+  <section class="card" id="reorderCard" hidden>
+    <h2>Reorder planner</h2>
+    <div id="reorderList"></div>
+    <p class="muted small help" id="reorderHelp"></p>
+  </section>
+  <section class="card">
+    <h2>Peptide vials — dry powder, not mixed yet</h2>
+    <div id="invPeptides"></div>
+  </section>
+  <section class="card">
+    <h2>In use — mixed vials</h2>
+    <div id="invInUse"></div>
+  </section>
+  <section class="card">
+    <h2>Bacteriostatic water</h2>
+    <div id="invWater"></div>
+  </section>
+  <section class="card">
+    <h2>Other supplies</h2>
+    <div id="invOther"></div>
+  </section>
+</main>
+
+<!-- Add / edit an inventory item -->
+<dialog id="invDialog">
+  <form id="invForm" method="dialog">
+    <h2 id="invTitle">Add to inventory</h2>
+    <fieldset class="seg">
+      <legend>What is it?</legend>
+      <label><input type="radio" name="iKind" value="peptide" checked> Peptide vial (dry powder)</label>
+      <label><input type="radio" name="iKind" value="water"> Bacteriostatic water</label>
+      <label><input type="radio" name="iKind" value="other"> Other supply (syringes, alcohol pads…)</label>
+    </fieldset>
+    <div class="grid2">
+      <div><label for="iName">Name</label><input id="iName" list="medNames" required maxlength="60" placeholder="e.g. BPC-157"></div>
+      <div><label for="iCode">Inventory #</label><input id="iCode" maxlength="20" placeholder="auto (#001…)"></div>
+      <div class="i-pep"><label for="iMg">mg per vial</label><input id="iMg" type="number" inputmode="decimal" step="any" min="0" placeholder="e.g. 5"></div>
+      <div><label for="iQty" id="iQtyLabel">Vials on hand</label><input id="iQty" type="number" inputmode="numeric" step="1" min="0" value="1"></div>
+      <div class="i-water"><label for="iBottle">Bottle size (mL)</label><input id="iBottle" type="number" inputmode="decimal" step="any" min="0" placeholder="e.g. 30"></div>
+      <div class="i-water"><label for="iOpen">mL left in open bottle</label><input id="iOpen" type="number" inputmode="decimal" step="any" min="0" value="0"></div>
+      <div class="i-other"><label for="iUnit">Counted as</label><input id="iUnit" maxlength="20" placeholder="e.g. syringes"></div>
+      <div><label for="iPrice" id="iPriceLabel">Price each ($)</label><input id="iPrice" type="number" inputmode="decimal" step="any" min="0"></div>
+      <div><label for="iLow">Warn me at or below</label><input id="iLow" type="number" inputmode="numeric" step="1" min="0" placeholder="optional"></div>
+      <div><label for="iLot">Lot / batch</label><input id="iLot" maxlength="40" placeholder="optional"></div>
+      <div><label for="iReceived">Received</label><input id="iReceived" type="date"></div>
+      <div><label for="iExpires">Expires</label><input id="iExpires" type="date"></div>
+    </div>
+    <label class="check i-other"><input type="checkbox" id="iPerShot"> Use one every time I log a shot</label>
+    <label for="iNote">Note</label>
+    <input id="iNote" maxlength="300" placeholder="Optional — supplier, storage…">
+    <div class="msg" id="invMsg" role="alert"></div>
+    <div class="dialog-actions">
+      <button type="button" class="danger-link" id="invDelete" hidden>Delete</button>
+      <span class="spacer"></span>
+      <button type="button" id="invCancel">Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Admin page (admins only) -->
+<main id="adminView" hidden>
+  <header class="admin-head">
+    <button type="button" class="back-btn" id="adminBack" aria-label="Back to tracker">‹ Back</button>
+    <h1>Admin</h1>
+  </header>
+  <nav class="tabs" role="tablist" aria-label="Admin sections">
+    <button type="button" role="tab" data-tab="users" aria-selected="true">Users</button>
+    <button type="button" role="tab" data-tab="email" aria-selected="false">Email</button>
+  </nav>
+  <section class="card" id="adminUsers" role="tabpanel">
+    <h2>Users</h2>
+
+    <div id="userList"></div>
+    <div id="inviteList"></div>
+    <form id="addUserForm" class="add-user">
+      <h3 class="sub-h">Add a person</h3>
+      <fieldset class="seg">
+        <label><input type="radio" name="nuMode" value="invite" checked> Email an invite — they choose their username and password</label>
+        <label><input type="radio" name="nuMode" value="temp"> Create a username and temporary password</label>
+      </fieldset>
+      <div id="nuInviteFields">
+        <label for="nuInviteEmail">Their email</label>
+        <input id="nuInviteEmail" type="email" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="name@example.com">
+        <p class="muted small help" id="nuInviteHelp">They’ll get a link (valid 7 days) to set up their account with their name, username and password.</p>
+      </div>
+      <div id="nuTempFields" hidden>
+        <div class="grid2">
+          <div><label for="nuFirst">First name</label><input id="nuFirst" autocomplete="off" maxlength="60"></div>
+          <div><label for="nuLast">Last name</label><input id="nuLast" autocomplete="off" maxlength="60"></div>
+          <div>
+            <label for="nuName">Username</label>
+            <input id="nuName" autocapitalize="none" spellcheck="false" autocomplete="off" maxlength="64" placeholder="e.g. sarah">
+          </div>
+          <div>
+            <label for="nuPass">Temporary password</label>
+            <div class="pw-row">
+              <input id="nuPass" autocomplete="off" minlength="8" spellcheck="false">
+              <button type="button" class="act" id="nuGen" title="Make a random password">↻</button>
+            </div>
+          </div>
+          <div class="full">
+            <label for="nuEmail">Email (optional)</label>
+            <input id="nuEmail" type="email" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="name@example.com">
+          </div>
+        </div>
+        <label class="check" id="nuSendWrap"><input type="checkbox" id="nuSend" checked> Email them their username, temporary password and a link</label>
+        <p class="muted small help">They’ll be asked to choose their own password the first time they sign in.</p>
+      </div>
+      <button type="submit" class="primary" id="nuSubmit">Send invite</button>
+      <div class="msg" id="usersMsg" role="status"></div>
+    </form>
+  </section>
+  <section class="card" id="adminEmail" role="tabpanel" hidden>
+    <h2>Email (SMTP)</h2>
+    <form id="mailForm">
+    <p class="muted small help">Used to email new users their login. For Gmail you need an <b>App Password</b>: Google Account → Security → 2-Step Verification (must be on) → App passwords → create one named “PeptideTracker”, then paste the 16 letters below.</p>
+    <button type="button" id="mailGmail">Use Gmail settings</button>
+    <div class="grid2" style="margin-top:12px">
+      <div><label for="mHost">SMTP server</label><input id="mHost" autocapitalize="none" spellcheck="false" placeholder="smtp.gmail.com" required></div>
+      <div><label for="mPort">Port</label><input id="mPort" type="number" inputmode="numeric" min="1" max="65535" placeholder="587" required></div>
+      <div class="full">
+        <label for="mSecure">Encryption</label>
+        <select id="mSecure"><option value="starttls">STARTTLS (port 587) — Gmail</option><option value="ssl">SSL/TLS (port 465)</option></select>
+      </div>
+      <div class="full"><label for="mUser">Username (your Gmail address)</label><input id="mUser" type="email" autocapitalize="none" spellcheck="false" autocomplete="off" placeholder="you@gmail.com"></div>
+      <div class="full"><label for="mPass">App password</label><input id="mPass" type="password" autocomplete="new-password" spellcheck="false" placeholder="16-letter app password"></div>
+      <div><label for="mFromName">From name</label><input id="mFromName" placeholder="PeptideTracker"></div>
+      <div><label for="mFromAddr">From address</label><input id="mFromAddr" type="email" autocapitalize="none" spellcheck="false" placeholder="same as username"></div>
+      <div class="full"><label for="mAppUrl">Link to the app (put in emails)</label><input id="mAppUrl" type="url" autocapitalize="none" spellcheck="false" placeholder="https://peptides.example.com"></div>
+    </div>
+    <p class="muted small help">Use the address people open from outside your home, e.g. your Nginx Proxy Manager domain.</p>
+    <div class="test-row">
+      <input id="mTestTo" type="email" autocapitalize="none" spellcheck="false" placeholder="Send a test to…" aria-label="Test email address">
+      <button type="button" id="mTest">Send test</button>
+    </div>
+    <div class="msg" id="mailMsg" role="status"></div>
+    <div class="dialog-actions">
+      <button type="button" class="danger-link" id="mailClear" hidden>Remove</button>
+      <span class="spacer"></span>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+  </section>
+</main>
+
+<!-- Add / edit a vial or box of pens -->
+<dialog id="supplyDialog">
+  <form id="supplyForm" method="dialog">
+    <h2 id="supplyTitle">New vial</h2>
+    <div class="grid2 from-stock" id="stockPick" hidden>
+      <div><label for="sFromInv">From inventory</label><select id="sFromInv"></select></div>
+      <div class="vial-only"><label for="sWaterFrom">Water from</label><select id="sWaterFrom"></select></div>
+    </div>
+    <fieldset class="seg">
+      <legend>Type</legend>
+      <label><input type="radio" name="sKind" value="vial" checked> Vial / pen cartridge (powder mixed with water)</label>
+      <label><input type="radio" name="sKind" value="pack"> Pre-filled pens / single-dose vials</label>
+    </fieldset>
+    <div class="grid2">
+      <div>
+        <label for="sName">Medication</label>
+        <input id="sName" list="medNames" required maxlength="60" placeholder="e.g. Tirzepatide">
+        <div class="name-hint" id="sNameHint" hidden></div>
+        <datalist id="medNames"></datalist>
+      </div>
+      <div>
+        <label for="sOpened" id="sOpenedLabel">Date mixed</label>
+        <input id="sOpened" type="date" required>
+      </div>
+      <div class="vial-only">
+        <label for="sMg">Powder strength (mg)</label>
+        <input id="sMg" type="number" inputmode="decimal" step="any" min="0" placeholder="e.g. 60">
+      </div>
+      <div class="vial-only">
+        <label for="sWater">Water added (mL)</label>
+        <input id="sWater" type="number" inputmode="decimal" step="any" min="0" placeholder="e.g. 3">
+      </div>
+      <div class="pack-only" hidden>
+        <label for="sCount">Doses in the box</label>
+        <input id="sCount" type="number" inputmode="numeric" step="1" min="1" placeholder="e.g. 4">
+      </div>
+      <div>
+        <label for="sPrice">Price paid ($)</label>
+        <input id="sPrice" type="number" inputmode="decimal" step="any" min="0" placeholder="e.g. 200">
+      </div>
+      <div class="vial-only">
+        <label for="sUseWithin">Use within (days after mixing)</label>
+        <input id="sUseWithin" type="number" inputmode="numeric" step="1" min="1" max="365" placeholder="optional, e.g. 28">
+      </div>
+    </div>
+    <label for="sNote">Note</label>
+    <div class="left-fix vial-only" id="sLeftWrap" hidden>
+      <label for="sLeft">What's actually left</label>
+      <div class="pw-row">
+        <input id="sLeft" type="number" inputmode="decimal" step="any" min="0" placeholder="">
+        <select id="sLeftUnit" class="unit-sel"><option value="units">units</option><option value="ml">mL</option></select>
+      </div>
+      <p class="muted small help" id="sLeftHelp"></p>
+    </div>
+    <input id="sNote" maxlength="300" placeholder="Optional — pharmacy, lot number…">
+    <label class="check"><input type="checkbox" id="sDone"> Finished / empty</label>
+    <div class="calc" id="supplyCalc" aria-live="polite"></div>
+
+    <div class="sched-line" id="vialSchedLine"></div>
+    <div class="msg" id="supplyMsg" role="alert"></div>
+    <div class="dialog-actions">
+      <button type="button" class="danger-link" id="supplyDelete" hidden>Delete</button>
+      <span class="spacer"></span>
+      <button type="button" id="supplyCancel">Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Log / edit a shot -->
+<dialog id="shotDialog">
+  <form id="shotForm" method="dialog">
+    <h2 id="shotTitle">Log shot</h2>
+    <div class="grid2">
+      <div class="full">
+        <label for="hWhen">When</label>
+        <input id="hWhen" type="datetime-local" required>
+      </div>
+      <div class="full">
+        <label for="hSupply">Taken from</label>
+        <select id="hSupply"></select>
+      </div>
+      <div id="hNameWrap" hidden>
+        <label for="hName">Medication</label>
+        <input id="hName" list="medNames" maxlength="60" placeholder="e.g. Zepbound">
+      </div>
+      <div class="full dose-hint" id="doseHint" hidden></div>
+      <div id="hUnitsWrap">
+        <label for="hUnits">Units drawn</label>
+        <input id="hUnits" type="number" inputmode="decimal" step="any" min="0" placeholder="e.g. 37.5">
+      </div>
+      <div>
+        <label for="hMg">Dose (mg)</label>
+        <input id="hMg" type="number" inputmode="decimal" step="any" min="0" required placeholder="e.g. 7.5">
+      </div>
+      <div class="full split-box" id="splitBox" hidden>
+        <div class="split-head"><b>Rest of this dose from another vial</b><button type="button" class="linkish" id="splitRemove">Remove</button></div>
+        <div class="grid2">
+          <div class="full"><label for="hSupply2">Second vial</label><select id="hSupply2"></select></div>
+          <div id="hUnits2Wrap"><label for="hUnits2">Units drawn</label><input id="hUnits2" type="number" inputmode="decimal" step="any" min="0"></div>
+          <div><label for="hMg2">Dose (mg)</label><input id="hMg2" type="number" inputmode="decimal" step="any" min="0"></div>
+        </div>
+      </div>
+      <div class="full"><button type="button" class="linkish" id="splitAdd">+ Take part of this dose from another vial</button></div>
+    </div>
+    <fieldset class="sites">
+      <legend>Injection site <span class="muted small" id="siteHint"></span></legend>
+      <div class="site-grid" id="siteGrid"></div>
+    </fieldset>
+    <label for="hNote">Note</label>
+    <input id="hNote" maxlength="200" placeholder="Optional">
+    <div class="calc" id="shotCalc" aria-live="polite"></div>
+    <div class="msg" id="shotMsg" role="alert"></div>
+    <div class="dialog-actions">
+      <button type="button" class="danger-link" id="shotDelete" hidden>Delete</button>
+      <span class="spacer"></span>
+      <button type="button" id="shotCancel">Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Settings -->
+<dialog id="settingsDialog">
+  <form id="settingsForm" method="dialog">
+    <h2>Settings</h2>
+    <label class="check top"><input type="checkbox" id="setTrackWeight"> Enable weight tracking</label>
+    <label class="check top"><input type="checkbox" id="setShowShots"> I track shots &amp; vials</label>
+    <div id="shotSettings">
+
+    <button type="button" class="med-link" id="setMedsLink">Medications — shot day, dose plan, schedules, injection sites, vial defaults ›</button>
+    <label for="setRefill">Refill warning when doses left are at or below</label>
+    <input id="setRefill" type="number" inputmode="numeric" min="0" max="20" step="1" required>
+    <p class="muted small help">Counts doses left in each open vial or box at your current dose.</p>
+
+    </div>
+    <fieldset class="seg" id="bannerSettings">
+      <legend>Banners at the top</legend>
+      <label class="check"><input type="checkbox" id="setBanners"> Show banners (shot days, refills, low stock)</label>
+      <div id="setBannerMeds" class="banner-meds"></div>
+    </fieldset>
+    <fieldset class="seg" id="notifySettings">
+      <legend>Shot reminders on this phone</legend>
+      <label class="check"><input type="checkbox" id="setNotify"> Send me a notification on shot days</label>
+      <div id="notifyBody">
+        <label for="setNotifyTime">At</label>
+        <input id="setNotifyTime" type="time" value="08:00">
+        <div id="setNotifyMeds" class="banner-meds"></div>
+        <div class="row-btns">
+          <button type="button" id="pushEnable">Turn on for this device</button>
+          <button type="button" id="pushTest">Send a test</button>
+        </div>
+        <p class="muted small help" id="pushStatus"></p>
+      </div>
+    </fieldset>
+    <fieldset class="seg">
+      <legend>Extras</legend>
+      <label class="check"><input type="checkbox" id="setDoseChart"> Dose &amp; results section (weight loss per dose)</label>
+      <label class="check"><input type="checkbox" id="setPhotos"> Progress photos (private, kept on this server)</label>
+      <label class="check"><input type="checkbox" id="setWeekly"> Weekly summary email</label>
+      <div class="grid2" id="weeklyBody">
+        <div><label for="setWeeklyDay">Day</label><select id="setWeeklyDay"></select></div>
+        <div><label for="setWeeklyTime">Time</label><input id="setWeeklyTime" type="time" value="18:00"></div>
+        <div class="full"><button type="button" id="weeklySend">Send one now</button></div>
+      </div>
+      <label class="check"><input type="checkbox" id="setExport"> Monthly data export email (on the 1st)</label>
+      <div id="exportBody"><button type="button" id="exportSend">Send one now</button></div>
+      <label class="check"><input type="checkbox" id="setReorder"> Reorder planner (when to order more)</label>
+      <div id="reorderBody" class="sub-opts">
+        <label for="setLead">Default: order this many days before running out</label>
+        <input id="setLead" type="number" inputmode="numeric" min="0" max="90" step="1">
+        <p class="muted small help">Each medication can have its own number under Medications → Edit.</p>
+      </div>
+      <p class="muted small help" id="extrasHelp"></p>
+    </fieldset>
+    <fieldset class="seg">
+      <legend>Rearrange sections</legend>
+      <p class="muted small help">Drag ☰ or use the arrows to set the order of your main page.</p>
+      <ol class="layout-list" id="setLayout"></ol>
+    </fieldset>
+    <label>Height (for BMI, optional)</label>
+    <div class="grid2">
+      <div><input id="setFt" type="number" inputmode="numeric" min="3" max="8" step="1" placeholder="ft" aria-label="Feet"></div>
+      <div><input id="setIn" type="number" inputmode="decimal" min="0" max="11.9" step="any" placeholder="in" aria-label="Inches"></div>
+    </div>
+    <div class="msg" id="settingsMsg" role="alert"></div>
+    <div class="dialog-actions">
+      <span class="spacer"></span>
+      <button type="button" id="settingsCancel">Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Users (admin only) -->
+
+<!-- My account (and the admin editing someone) -->
+<dialog id="accountDialog">
+  <form id="accountForm" method="dialog">
+    <h2 id="accountTitle">My account</h2>
+    <div class="grid2">
+      <div><label for="accFirst">First name</label><input id="accFirst" autocomplete="given-name" maxlength="60"></div>
+      <div><label for="accLast">Last name</label><input id="accLast" autocomplete="family-name" maxlength="60"></div>
+      <div class="full"><label for="accUser">Username</label><input id="accUser" readonly></div>
+      <div class="full"><label for="accEmail">Email</label><input id="accEmail" type="email" autocapitalize="none" spellcheck="false" autocomplete="email" placeholder="Used for sign-in and password resets"></div>
+      <div class="full" id="accCurrentWrap" hidden><label for="accCurrent">Current password (needed to change your email)</label><input id="accCurrent" type="password" autocomplete="current-password"></div>
+    </div>
+    <div class="msg" id="accountMsg" role="alert"></div>
+    <div class="dialog-actions">
+      <span class="spacer"></span>
+      <button type="button" id="accountCancel">Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+
+<!-- Shown once per person -->
+<dialog id="disclaimerDialog">
+  <form id="disclaimerForm" method="dialog">
+    <h2>Before you start</h2>
+    <p>PeptideTracker is a personal logging tool for <b>educational and research purposes</b>.</p>
+    <ul class="small">
+      <li>It is <b>not medical advice</b> and doesn’t recommend any dose, schedule or substance. Dose plans and projections only follow the numbers you enter.</li>
+      <li>It does not sell or supply anything and isn’t affiliated with any manufacturer or pharmacy.</li>
+      <li>Many peptides are <b>not approved for human use</b>. Know your local laws and talk to a doctor.</li>
+      <li>Provided as-is, with no warranty. Keep your own records and backups.</li>
+    </ul>
+    <div class="dialog-actions">
+      <span class="spacer"></span>
+      <button type="submit" class="primary">I understand</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Change password -->
+<dialog id="pwDialog">
+  <form id="pwForm" method="dialog">
+    <h2>Change password</h2>
+    <input autocomplete="username" id="pwUser" hidden>
+    <label for="pwCurrent">Current password</label>
+    <input id="pwCurrent" type="password" autocomplete="current-password" required>
+    <label for="pwNew">New password</label>
+    <input id="pwNew" type="password" autocomplete="new-password" required minlength="8">
+    <label for="pwNew2">Confirm new password</label>
+    <input id="pwNew2" type="password" autocomplete="new-password" required minlength="8">
+    <div class="msg" id="pwMsg" role="alert"></div>
+    <div class="dialog-actions">
+      <span class="spacer"></span>
+      <button type="button" id="pwCancel">Cancel</button>
+      <button type="submit" class="primary" value="save">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" class="toast" role="status" hidden></div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

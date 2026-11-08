@@ -1,0 +1,24 @@
+{
+  "name": "peptidetracker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Self-hosted tracker for peptide and GLP-1 shots, vials, inventory, schedules and progress",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "nodemailer": "^10.1.7",
+    "pg": "^8.23.1",
+    "web-push": "^4.0.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fals3illusion/peptidetracker.git"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

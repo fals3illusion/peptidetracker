@@ -1,1 +1,124 @@
-# peptidetracker
+# PeptideTracker
+
+A self-hosted tracker for peptide and GLP-1 shots: vials and what's left in them, dose schedules,
+injection-site rotation, inventory, reorder dates, reminders on your phone, and your weight trend
+with a projected goal date. Runs in a small Proxmox LXC (or any Debian 12/13 machine), private to
+you and the people you invite.
+
+> **Disclaimer:** PeptideTracker is a personal logging tool for educational and research purposes.
+> It is not medical advice and doesn't recommend any dose, schedule or substance — dose plans and
+> projections only follow the numbers you enter. It does not sell or supply anything and is not
+> affiliated with any manufacturer or pharmacy. Many peptides are not approved for human use —
+> know your local laws and talk to a doctor. Provided as-is, with no warranty (see [LICENSE](LICENSE)).
+
+## Features
+
+- **Shots & vials** — log a dose in mg or syringe units; the app works out units from powder mg +
+  water mL, subtracts each shot from its vial, and shows what's left and cost per shot. Split a dose
+  across two vials when one runs low. Correct a vial if what's actually left differs.
+- **Schedules** — a weekly main GLP-1 with a shot day and an optional step-up dose plan; other
+  peptides on their own schedule (daily, certain weekdays, every N days, as needed), in units or mg,
+  with optional increases.
+- **Next shots** at the top of the page, with one-tap **✓ Log** (and Undo).
+- **Injection sites** — per-medication rotation with custom sites; the next site is suggested.
+- **Inventory** — powder vials, bacteriostatic water and supplies with lot, expiry and low-stock
+  warnings. "Mix & use" turns stock into a vial in use.
+- **Reorder planner** — when each medication runs out and the date to order by (your lead time,
+  per medication if you like).
+- **Use-by dates** for mixed vials and pen cartridges.
+- **Reminders** — push notifications on shot days (iPhone and Android, from the Home Screen app).
+- **Weight** (optional) — weigh-ins, trend chart, projected goal date, milestones, BMI, and how
+  much you lost per week on each dose.
+- **Progress photos** (optional) — private, kept on your server, with before/after comparison.
+- **Email** (optional) — invites, password resets, a weekly summary and a monthly data export.
+- **Multiple people** — the first account is the admin; invite others by email or create accounts.
+  Everyone's data is private.
+- Optional **PostgreSQL** mirror (restore on a fresh install) and a **Grafana** dashboard.
+
+## Install on Proxmox VE
+
+In the **Proxmox VE host shell** (as root):
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/fals3illusion/peptidetracker/main/ct/peptidetracker.sh)"
+```
+
+It creates an unprivileged Debian 13 container (1 core, 512 MB RAM, 4 GB disk, DHCP — answer "n" to
+change any of that), installs the latest release and starts it. Open `http://<container-ip>:3080`
+and create your admin account. First-time setup only works from your local network.
+
+**Already have a Debian 12/13 machine?** Run this inside it instead:
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/fals3illusion/peptidetracker/main/install/peptidetracker-install.sh)"
+```
+
+## Update
+
+Open the container's console (or SSH in) and type:
+
+```bash
+update
+```
+
+It checks for a newer release, backs up your data to `/var/backups/peptidetracker/` (last 10
+kept), installs it, and puts the old version back automatically if the new one doesn't start.
+The admin sees "vX.Y.Z available" in the app's ⋯ menu when there's a new release.
+What changed in each version: [CHANGELOG.md](CHANGELOG.md).
+
+## HTTPS, phone app and notifications
+
+Put PeptideTracker behind a reverse proxy with a certificate (Nginx Proxy Manager, Caddy,
+Traefik…) pointing at `http://<container-ip>:3080`. HTTPS is needed for:
+
+- **Add to Home Screen** as an app (Safari → Share → Add to Home Screen on iPhone).
+- **Shot reminders** — open the app from the Home Screen icon, then Settings → *Shot reminders on
+  this phone* → *Turn on for this device* (iOS 16.4+).
+
+No websockets needed. Logins use secure cookies automatically when the proxy sends
+`X-Forwarded-Proto: https`.
+
+## Email (optional)
+
+As admin: ⋯ → Admin → Email. Gmail works with smtp.gmail.com, port 587, and a Google
+[App Password](https://myaccount.google.com/apppasswords). Set "Link to the app" to your HTTPS
+address so links in emails work.
+
+## Your data
+
+Everything lives in `/var/lib/peptidetracker/` in the container (`data.json`, `users.json`, and
+`photos/`). Passwords are scrypt-hashed and links/sessions are stored only as hashes. Back up the
+container with Proxmox's normal backups.
+
+**PostgreSQL mirror (optional):** add `PG_URL=postgres://user:password@host:5432/database` to
+`/etc/peptidetracker/env` and `systemctl restart peptidetracker`. Every change is copied to `wt_*`
+tables; on a fresh install with an empty data folder the app restores from it. Photos are not
+copied. A Grafana dashboard is in [`grafana/`](grafana/) (import the JSON, pick your PostgreSQL
+data source; read it with a read-only database user).
+
+**Forgot the admin password?** In the container:
+
+```bash
+cd /opt/peptidetracker && runuser -u peptidetracker -- env DATA_DIR=/var/lib/peptidetracker node set-password.js <username>
+```
+
+## Settings on the server
+
+`/etc/peptidetracker/env`: `PORT` (default 3080), `TZ` (used for reminders and summaries),
+`PG_URL` (optional), `UPDATE_CHECK=0` to turn off the release check. Logs:
+`journalctl -u peptidetracker -e`.
+
+## Development
+
+Node.js 20+, no build step. `npm ci`, `npm start` (http://localhost:3080, data in `./data`),
+`npm test`. Database tests run when `PG_TEST_URL` points at a throwaway PostgreSQL.
+`scripts/dev-deploy.sh` ships your working copy to your own container over SSH;
+`scripts/release.sh X.Y.Z` turns the *Unreleased* changelog section into a release, and GitHub
+Actions builds and publishes it.
+
+Built with help from Claude (Anthropic). Not affiliated with Proxmox or the
+community-scripts project.
+
+## License
+
+[MIT](LICENSE)

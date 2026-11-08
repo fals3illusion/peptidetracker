@@ -1,0 +1,763 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_PEPTIDETRACKER",
+      "label": "PeptideTracker (PostgreSQL)",
+      "description": "PostgreSQL data source pointing at your PeptideTracker backup database",
+      "type": "datasource",
+      "pluginId": "grafana-postgresql-datasource",
+      "pluginName": "PostgreSQL"
+    }
+  ],
+  "__requires": [
+    {
+      "type": "datasource",
+      "id": "grafana-postgresql-datasource",
+      "name": "PostgreSQL",
+      "version": "1.0.0"
+    }
+  ],
+  "title": "PeptideTracker",
+  "uid": "peptidetracker",
+  "tags": [
+    "health",
+    "glp-1"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "schemaVersion": 39,
+  "version": 5,
+  "refresh": "5m",
+  "time": {
+    "from": "now-100d",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Current weight",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_PEPTIDETRACKER}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_PEPTIDETRACKER}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT weight_lb AS \"lb\" FROM wt_entries WHERE user_id = '$person' ORDER BY taken_at DESC LIMIT 1"
+        }
+      ],
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 1,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Total lost (lb)",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_PEPTIDETRACKER}"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_PEPTIDETRACKER}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT (SELECT weight_lb FROM wt_entries WHERE user_id = '$person' ORDER BY taken_at LIMIT 1) - (SELECT weight_lb FROM wt_entries WHERE user_id = '$person' ORDER BY taken_at DESC LIMIT 1) AS \"lb\""
+        }
+      ],
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 1,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Body weight lost",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_PEPTIDETRACKER}"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_PEPTIDETRACKER}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT 100.0 * ((SELECT weight_lb FROM wt_entries WHERE user_id = '$person' ORDER BY taken_at LIMIT 1) - (SELECT weight_lb FROM wt_entries WHERE user_id = '$person' ORDER BY taken_at DESC LIMIT 1)) / (SELECT weight_lb FROM wt_entries WHERE user_id = '$person' ORDER BY taken_at LIMIT 1) AS \"pct\""
+        }
+      ],
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "To goal (lb)",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_PEPTIDETRACKER}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_PEPTIDETRACKER}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT (SELECT weight_lb FROM wt_entries WHERE user_id = '$person' ORDER BY taken_at DESC LIMIT 1) - (settings->>'goal')::numeric AS \"lb\" FROM wt_settings WHERE user_id = '$person'"
+        }
+      ],
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 1,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "purple"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Current dose (mg)",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_PEPTIDETRACKER}"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_PEPTIDETRACKER}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT dose_mg AS \"mg\" FROM (SELECT min(taken_at) AS t, sum(dose_mg) AS dose_mg FROM wt_shots WHERE user_id = '$person' AND lower(name) NOT IN (SELECT lower(pr->>'name') FROM wt_settings ws, jsonb_array_elements(coalesce(ws.settings->'protocols', '[]'::jsonb)) pr WHERE ws.user_id = '$person') GROUP BY coalesce(group_id, to_char(date_trunc('minute', taken_at), 'YYYYMMDDHH24MI'))) d ORDER BY t DESC LIMIT 1"
+        }
+      ],
+      "description": "Main GLP-1 only (medications with their own schedule are left out)",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 1,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Spent total",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_PEPTIDETRACKER}"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_PEPTIDETRACKER}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT coalesce(sum(price), 0) AS \"usd\" FROM wt_supplies WHERE user_id = '$person'"
+        }
+      ],
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Weight",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_PEPTIDETRACKER}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_PEPTIDETRACKER}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT taken_at AS \"time\",\n       weight_lb AS \"Daily weigh-in\",\n       round(avg(weight_lb) OVER (ORDER BY taken_at RANGE BETWEEN interval '7 days' - interval '1 second' PRECEDING AND CURRENT ROW), 2) AS \"7-day average\",\n       (SELECT (settings->>'goal')::numeric FROM wt_settings WHERE user_id = '$person') AS \"Goal\"\nFROM wt_entries WHERE user_id = '$person'\nORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 1,
+          "custom": {
+            "lineWidth": 1,
+            "pointSize": 4,
+            "showPoints": "always",
+            "spanNulls": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Daily weigh-in"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#2a78d6"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "7-day average"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#2a78d6"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 3
+              },
+              {
+                "id": "custom.showPoints",
+                "value": "never"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Goal"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#888888"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    4,
+                    6
+                  ]
+                }
+              },
+              {
+                "id": "custom.showPoints",
+                "value": "never"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "barchart",
+      "title": "Weekly change (lb, avg of each week vs the week before)",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_PEPTIDETRACKER}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_PEPTIDETRACKER}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT to_char(wk, 'Mon DD') AS \"Week of\",\n       round(avg_lb - lag(avg_lb) OVER (ORDER BY wk), 2) AS \"Change\"\nFROM (SELECT date_trunc('week', taken_at) AS wk, avg(weight_lb) AS avg_lb FROM wt_entries WHERE user_id = '$person' GROUP BY 1) w\nORDER BY wk"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 1,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#1baf7a"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "xTickLabelRotation": -45,
+        "showValue": "auto",
+        "legend": {
+          "showLegend": false
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Dose (mg)",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_PEPTIDETRACKER}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 14,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_PEPTIDETRACKER}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "SELECT t AS \"time\", dose_mg AS \"Dose (mg)\" FROM (SELECT min(taken_at) AS t, sum(dose_mg) AS dose_mg FROM wt_shots WHERE user_id = '$person' AND lower(name) NOT IN (SELECT lower(pr->>'name') FROM wt_settings ws, jsonb_array_elements(coalesce(ws.settings->'protocols', '[]'::jsonb)) pr WHERE ws.user_id = '$person') GROUP BY coalesce(group_id, to_char(date_trunc('minute', taken_at), 'YYYYMMDDHH24MI'))) d ORDER BY 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 1,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#eb6834"
+          },
+          "min": 0,
+          "custom": {
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 2,
+            "showPoints": "always",
+            "pointSize": 6,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "bargauge",
+      "title": "Open vials: % left",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_PEPTIDETRACKER}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 22,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_PEPTIDETRACKER}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT s.name || ' (' || to_char(s.opened_at, 'Mon DD') || '): ' ||\n       CASE WHEN s.kind = 'vial' THEN round(s.powder_mg - coalesce(sum(sh.dose_mg), 0), 1) || ' of ' || s.powder_mg || ' mg left'\n            ELSE (s.dose_count - count(sh.id)) || ' of ' || s.dose_count || ' doses left' END AS \"Vial\",\n       round(100.0 * CASE WHEN s.kind = 'vial' THEN (s.powder_mg - coalesce(sum(sh.dose_mg), 0)) / nullif(s.powder_mg, 0)\n            ELSE (s.dose_count - count(sh.id))::numeric / nullif(s.dose_count, 0) END, 1) AS \"% left\"\nFROM wt_supplies s LEFT JOIN wt_shots sh ON sh.supply_id = s.id\nWHERE NOT s.done AND s.user_id = '$person'\nGROUP BY s.id ORDER BY s.opened_at"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#6250d6"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayMode": "basic",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "showUnfilled": true
+      }
+    },
+    {
+      "id": 11,
+      "type": "table",
+      "title": "Shots",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_PEPTIDETRACKER}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 22,
+        "w": 12,
+        "h": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_PEPTIDETRACKER}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT taken_at AS \"Date\", name AS \"Medication\", dose_mg AS \"mg\", units AS \"Units\", site AS \"Site\"\nFROM wt_shots WHERE user_id = '$person' ORDER BY taken_at DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Date"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "time:ddd MMM D"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true
+      }
+    },
+    {
+      "id": 12,
+      "type": "table",
+      "title": "Purchases",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${DS_PEPTIDETRACKER}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 12,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${DS_PEPTIDETRACKER}"
+          },
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT opened_at AS \"Date\", name AS \"Medication\", CASE WHEN kind = 'vial' THEN powder_mg || ' mg vial + ' || water_ml || ' mL' ELSE dose_count || ' doses' END AS \"What\", price AS \"Price\"\nFROM wt_supplies WHERE user_id = '$person' ORDER BY opened_at DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Date"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "time:MMM D, YYYY"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Price"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true
+      }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "person",
+        "label": "Person",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${DS_PEPTIDETRACKER}"
+        },
+        "query": "SELECT coalesce(nullif(trim(concat_ws(' ', first_name, last_name)), ''), username) AS __text, user_id AS __value FROM wt_people ORDER BY username",
+        "definition": "SELECT coalesce(nullif(trim(concat_ws(' ', first_name, last_name)), ''), username) AS __text, user_id AS __value FROM wt_people ORDER BY username",
+        "refresh": 1,
+        "includeAll": false,
+        "multi": false,
+        "sort": 0,
+        "current": {}
+      }
+    ]
+  }
+}
