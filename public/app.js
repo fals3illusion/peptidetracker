@@ -386,6 +386,7 @@ function render() {
   $('shotCard').hidden = !showShots;
   applyLayout();
   renderNext();
+  renderStart();
   renderShots();
   renderBanners();
   renderInventory();
@@ -2195,7 +2196,9 @@ function layoutOrder(saved) {
   return [...new Set([...order, ...ids])];
 }
 function applyLayout() {
-  document.body.classList.toggle('no-weight', state.settings.trackWeight === false);
+  // New account still choosing: keep empty weight sections out of the way until they answer.
+  const st = state.settings, onboarding = !st.onboarded && state.shots.length === 0 && !st.weightAsked && state.entries.length === 0;
+  document.body.classList.toggle('no-weight', st.trackWeight === false || onboarding);
   const main = $('appView'), end = main.querySelector('.disclaimer');
   for (const id of layoutOrder(state.settings.layout)) main.insertBefore($(id), end);
 }
@@ -2209,6 +2212,40 @@ function whenText(due, state_) {
   const days = Math.round((DAY0(due) - DAY0(Date.now())) / 86400000);
   return { text: days === 1 ? `Tomorrow · ${fmtDay(due)}` : `In ${days} days · ${fmtDay(due)}`, cls: '' };
 }
+// ---------- get started (new accounts) ----------
+function renderStart() {
+  const st = state.settings;
+  const show = !st.onboarded && state.shots.length === 0 && state.settings.showShots !== false;
+  $('startCard').hidden = !show;
+  if (!show) return;
+  $('appView').insertBefore($('startCard'), $('banners').nextSibling); // always first
+  const steps = [
+    { done: allMeds().length > 0, title: 'Add your first medication', desc: 'Name, schedule (weekly shot day, daily, every few days…), dose and injection sites.', btn: 'Add', act: 'med' },
+    { done: state.supplies.length > 0, title: 'Add a vial or pen', desc: 'Powder mg + water mL — the app works out syringe units and tracks what’s left.', btn: 'Add', act: 'vial' },
+    { done: state.shots.length > 0, title: 'Log your first shot', desc: 'From then on, Next shots tells you what’s due, with one-tap ✓ Log.', btn: 'Log', act: 'shot' },
+    { done: !!st.weightAsked, title: 'Track your weight too?', desc: st.weightAsked ? (st.trackWeight !== false ? 'Weight tracking is on (change anytime in Settings).' : 'Weight tracking is off (turn it on anytime in Settings).') : 'Weigh-ins, a trend chart and a projected goal date. Optional.', weight: true },
+  ];
+  $('startSteps').innerHTML = steps.map((s, i) => `<li class="${s.done ? 'done' : ''}">
+    <span class="num">${s.done ? '✓' : i + 1}</span><span class="stitle">${esc(s.title)}</span>
+    <span class="sbtns">${s.weight
+      ? (s.done ? '' : '<button type="button" class="primary" data-start="weight-yes">Yes</button><button type="button" data-start="weight-no">No thanks</button>')
+      : (s.done ? '' : `<button type="button" class="${steps.findIndex(x => !x.done) === i ? 'primary' : ''}" data-start="${s.act}">${s.btn}</button>`)}</span>
+    <span class="sdesc">${esc(s.desc)}</span></li>`).join('');
+}
+$('startSteps').addEventListener('click', async ev => {
+  const b = ev.target.closest('[data-start]');
+  if (!b) return;
+  const a = b.dataset.start;
+  if (a === 'med') openMedEditor(null);
+  if (a === 'vial') openSupplyDialog(null, allMeds()[0] || null);
+  if (a === 'shot') openShotDialog(null, protocolFor(protocols(), allMeds()[0] || '') ? { med: allMeds()[0] } : {});
+  if (a === 'weight-yes' || a === 'weight-no') {
+    await api('PUT', '/api/settings', { trackWeight: a === 'weight-yes', weightAsked: true });
+    await refresh();
+  }
+});
+$('startHide').addEventListener('click', async () => { await api('PUT', '/api/settings', { onboarded: true }); await refresh(); });
+
 function renderNext() {
   const card = $('nextCard');
   if (state.settings.showShots === false) { card.hidden = true; return; }
