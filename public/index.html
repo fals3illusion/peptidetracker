@@ -70,10 +70,14 @@
   <form id="inviteForm" class="card auth-card" hidden>
     <img src="icon.svg" alt="" width="44" height="44">
     <h1>Set up your account</h1>
-    <p class="muted">You were invited as <b id="inviteEmail"></b>. Pick a username and password — you can sign in with either your username or this email.</p>
+    <p class="muted" id="inviteIntro"></p>
     <div class="grid2">
       <div><label for="invFirst">First name</label><input id="invFirst" autocomplete="given-name" required maxlength="60"></div>
       <div><label for="invLast">Last name</label><input id="invLast" autocomplete="family-name" maxlength="60"></div>
+    </div>
+    <div id="invEmailWrap" hidden>
+      <label for="invEmail">Email (optional — for password resets)</label>
+      <input id="invEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false">
     </div>
     <label for="invUser">Username</label>
     <input id="invUser" autocomplete="username" autocapitalize="none" spellcheck="false" required maxlength="64" placeholder="letters, numbers, . _ -">
@@ -501,13 +505,16 @@
     <form id="addUserForm" class="add-user">
       <h3 class="sub-h">Add a person</h3>
       <fieldset class="seg">
-        <label><input type="radio" name="nuMode" value="invite" checked> Email an invite — they choose their username and password</label>
+        <label><input type="radio" name="nuMode" value="invite" checked> Invite link — they choose their own username and password (text it or email it)</label>
         <label><input type="radio" name="nuMode" value="temp"> Create a username and temporary password</label>
       </fieldset>
       <div id="nuInviteFields">
-        <label for="nuInviteEmail">Their email</label>
-        <input id="nuInviteEmail" type="email" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="name@example.com">
-        <p class="muted small help" id="nuInviteHelp">They’ll get a link (valid 7 days) to set up their account with their name, username and password.</p>
+        <div class="grid2">
+          <div><label for="nuInviteName">Who it’s for (optional)</label><input id="nuInviteName" autocomplete="off" maxlength="60" placeholder="e.g. Sarah"></div>
+          <div><label for="nuInviteEmail">Their email (optional)</label><input id="nuInviteEmail" type="email" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="name@example.com"></div>
+        </div>
+        <label class="check" id="nuInviteSendWrap" hidden><input type="checkbox" id="nuInviteSend" checked> Also email it to them</label>
+        <p class="muted small help" id="nuInviteHelp">You’ll get a link to copy or text them. It works once and expires in 7 days.</p>
       </div>
       <div id="nuTempFields" hidden>
         <div class="grid2">

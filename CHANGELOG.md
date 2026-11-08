@@ -4,6 +4,13 @@ All notable changes to PeptideTracker. Run `update` in the container to get the 
 
 ## [Unreleased]
 
+### Added
+- Invite links you can text: Admin → Users → "Invite link" makes a one-time sign-up link with **Copy** and
+  **Share** buttons (Share opens Messages on a phone). Email is optional; "New link" on a waiting invite makes a fresh one.
+- Creating a username + temporary password now gives you a ready-to-text message with the sign-in link,
+  username and temporary password (also after an admin password reset).
+- People who join with a texted link can add their email while setting up.
+
 ### Fixed
 - Page header buttons (‹ Back, + Add medication) no longer wrap onto two lines on narrow phones.
 

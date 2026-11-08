@@ -233,7 +233,11 @@ async function openInvite(token) {
   const d = await res.json().catch(() => ({}));
   if (!res.ok) return linkError(d.error || 'This invite link isn’t valid.');
   showCard('inviteForm');
-  $('inviteEmail').textContent = d.email;
+  $('inviteIntro').innerHTML = d.email
+    ? `You were invited as <b>${esc(d.email)}</b>. Pick a username and password — you can sign in with either your username or this email.`
+    : 'You’ve been invited to PeptideTracker. Pick a username and password to create your account.';
+  $('invEmailWrap').hidden = !!d.email;
+  if (d.name && !$('invFirst').value) $('invFirst').value = d.name.split(' ')[0];
   $('inviteMsg').textContent = '';
   $('invFirst').focus();
 }
@@ -243,7 +247,7 @@ $('inviteForm').addEventListener('submit', async ev => {
   try {
     await api('POST', `/api/invite/${encodeURIComponent(linkToken)}`, {
       firstName: $('invFirst').value.trim(), lastName: $('invLast').value.trim(),
-      user: $('invUser').value.trim(), password: $('invPass').value,
+      user: $('invUser').value.trim(), password: $('invPass').value, email: $('invEmail').value.trim(),
     });
     await whoAmI();
     await showApp();
@@ -1888,37 +1892,63 @@ async function renderUsers() {
     </div>`).join('');
   $('inviteList').innerHTML = invites.length
     ? `<h3 class="sub-h">Invites waiting</h3>` + invites.map(i => `<div class="invite-row">
-        <div class="name">${esc(i.email)}</div>
+        <div class="name">${esc(i.name || i.email || 'Invite link')}${i.name && i.email ? ` <span class="muted small">${esc(i.email)}</span>` : ''}</div>
         <div class="meta">Invited ${fmtShort(i.created)} · link expires ${fmtShort(i.exp)}</div>
         <div class="btns">
-          <button type="button" class="act" data-resend="${esc(i.id)}">Resend</button>
-          <button type="button" class="act del" data-cancel="${esc(i.id)}" data-email="${esc(i.email)}">Cancel</button>
+          <button type="button" class="act" data-resend="${esc(i.id)}" data-who="${esc(i.name || i.email || '')}">${i.email && state.mailReady ? 'Resend' : 'New link'}</button>
+          <button type="button" class="act del" data-cancel="${esc(i.id)}" data-email="${esc(i.name || i.email || 'this person')}">Cancel</button>
         </div>
       </div>`).join('')
     : '';
 }
 function usersMsg(html, ok) { $('usersMsg').className = `msg${ok ? ' ok' : ''}`; $('usersMsg').innerHTML = html; }
 // After adding/resetting: say whether the email went out, and show the password if it didn't.
-function showSent(name, pass, r) {
-  if (r.emailed) return usersMsg(`<div class="new-pass">Sent <b>${esc(name)}</b> their login at <b>${esc(r.email)}</b>.</div>`, true);
-  usersMsg(`<div class="new-pass">Give <b>${esc(name)}</b> this temporary password: <code>${esc(pass)}</code><br><span class="muted small">They’ll choose their own when they first sign in.</span></div>`
+// A ready-to-send message with Copy and Share (Share opens Messages etc. on a phone).
+function shareBox(intro, message) {
+  return `<div class="new-pass">${intro}<div class="share-box">
+    <textarea readonly aria-label="Message to send">${esc(message)}</textarea>
+    <div class="row-btns"><button type="button" class="primary" data-copy-msg>Copy</button>${navigator.share ? '<button type="button" data-share-msg>Share…</button>' : ''}</div>
+  </div></div>`;
+}
+$('usersMsg').addEventListener('click', async ev => {
+  const box = ev.target.closest('.share-box');
+  if (!box) return;
+  const text = box.querySelector('textarea').value;
+  if (ev.target.closest('[data-copy-msg]')) {
+    const b = ev.target.closest('[data-copy-msg]');
+    try { await navigator.clipboard.writeText(text); }
+    catch { const t = box.querySelector('textarea'); t.focus(); t.select(); document.execCommand('copy'); }
+    b.textContent = 'Copied ✓'; setTimeout(() => { b.textContent = 'Copy'; }, 2000);
+  }
+  if (ev.target.closest('[data-share-msg]')) navigator.share({ text }).catch(() => {});
+});
+function showSent(name, pass, r, firstName = '') {
+  const hi = firstName ? `Hi ${firstName}! ` : 'Hi! ';
+  const msg = `${hi}I set you up on PeptideTracker.\n\nSign in here: ${r.loginLink || location.origin}\nUsername: ${name}\nTemporary password: ${pass}\n\nYou’ll pick your own password the first time you sign in.`;
+  usersMsg((r.emailed ? `<div class="new-pass">Emailed <b>${esc(name)}</b> their login at <b>${esc(r.email)}</b>.</div>` : '')
+    + shareBox(r.emailed ? 'Or text them this:' : `Send <b>${esc(name)}</b> their login:`, msg)
     + (r.emailError ? `<div class="msg">Email not sent: ${esc(r.emailError)}</div>` : ''), true);
+}
+function showInviteLink(r, label) {
+  const who = label || r.name || r.email || '';
+  const msg = `${who ? `Hi ${who.split(/[ @]/)[0]}! ` : 'Hi! '}Here’s your invite to PeptideTracker — tap to create your account (you’ll pick your own username and password):\n${r.link}\n\nThe link works once and expires in 7 days.`;
+  usersMsg((r.emailed ? `<div class="new-pass">Invite emailed to <b>${esc(r.email)}</b>.</div>` : '')
+    + shareBox(r.emailed ? 'Or text them the link:' : `Invite link${who ? ` for <b>${esc(who)}</b>` : ''}:`, msg), true);
 }
 const nuMode = () => document.querySelector('input[name="nuMode"]:checked').value;
 function updateAddForm() {
   const invite = nuMode() === 'invite';
   $('nuInviteFields').hidden = !invite;
   $('nuTempFields').hidden = invite;
-  $('nuSubmit').textContent = invite ? 'Send invite' : 'Add user';
+  $('nuSubmit').textContent = invite ? 'Create invite link' : 'Add user';
   $('nuSendWrap').hidden = !state.mailReady;
-  $('nuInviteHelp').innerHTML = state.mailReady
-    ? 'They’ll get a link (valid 7 days) to set up their account with their name, username and password.'
-    : 'Email isn’t set up yet. Add your Gmail in ⋯ → <b>Email settings</b> first, or create a username and temporary password instead.';
+  $('nuInviteSendWrap').hidden = !state.mailReady || !$('nuInviteEmail').value.trim();
 }
+$('nuInviteEmail').addEventListener('input', updateAddForm);
 document.querySelectorAll('input[name="nuMode"]').forEach(r => r.addEventListener('change', updateAddForm));
 async function loadUsersTab() {
   $('addUserForm').reset();
-  document.querySelector(`input[name="nuMode"][value="${state.mailReady ? 'invite' : 'temp'}"]`).checked = true;
+  document.querySelector('input[name="nuMode"][value="invite"]').checked = true; // links work with or without email
   $('nuPass').value = randomPassword();
   $('nuSend').checked = true;
   updateAddForm();
@@ -1931,12 +1961,12 @@ $('addUserForm').addEventListener('submit', async ev => {
   usersMsg('');
   try {
     if (nuMode() === 'invite') {
-      const email = $('nuInviteEmail').value.trim();
-      if (!email) return usersMsg('Enter their email address.');
-      await api('POST', '/api/invites', { email });
-      $('nuInviteEmail').value = '';
+      const email = $('nuInviteEmail').value.trim(), name = $('nuInviteName').value.trim();
+      const r = await api('POST', '/api/invites', { email, name, sendEmail: !!email && state.mailReady && $('nuInviteSend').checked });
+      $('nuInviteEmail').value = ''; $('nuInviteName').value = '';
+      updateAddForm();
       await renderUsers();
-      return usersMsg(`<div class="new-pass">Invite sent to <b>${esc(email)}</b>. They’ll show up here once they set up their account.</div>`, true);
+      return showInviteLink(r, name);
     }
     const name = $('nuName').value.trim(), pass = $('nuPass').value, email = $('nuEmail').value.trim();
     if (!name) return usersMsg('Enter a username.');
@@ -1947,7 +1977,7 @@ $('addUserForm').addEventListener('submit', async ev => {
     await renderUsers();
     ['nuName', 'nuEmail', 'nuFirst', 'nuLast'].forEach(id => ($(id).value = ''));
     $('nuPass').value = randomPassword();
-    showSent(name, pass, r);
+    showSent(name, pass, r, r.firstName);
   } catch (e) { usersMsg(esc(e.message)); }
 });
 async function onUsersClick(ev) {
@@ -1963,7 +1993,7 @@ async function onUsersClick(ev) {
       const sendEmail = !!u.email && state.mailReady && confirm(`Email the new temporary password to ${u.email}?`);
       const r = await api('POST', `/api/users/${encodeURIComponent(u.id)}/password`, { password: pass, sendEmail });
       await renderUsers();
-      return showSent(u.user, pass, r);
+      return showSent(u.user, pass, r, u.firstName);
     }
     if (btn.dataset.remove) {
       if (!confirm(`Remove ${fullName(u) || u.user}? This permanently deletes their weigh-ins, shots and vials.`)) return;
@@ -1971,9 +2001,9 @@ async function onUsersClick(ev) {
       return renderUsers();
     }
     if (btn.dataset.resend) {
-      await api('POST', `/api/invites/${encodeURIComponent(btn.dataset.resend)}/resend`, {});
+      const r = await api('POST', `/api/invites/${encodeURIComponent(btn.dataset.resend)}/resend`, {});
       await renderUsers();
-      return usersMsg('Invite sent again with a new link.', true);
+      return showInviteLink({ ...r, email: r.emailed ? btn.dataset.who : '' }, btn.dataset.who);
     }
     if (btn.dataset.cancel) {
       if (!confirm(`Cancel the invite for ${btn.dataset.email}? Their link will stop working.`)) return;

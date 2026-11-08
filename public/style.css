@@ -269,6 +269,9 @@ details.finished summary { cursor: pointer; color: var(--text-muted); font-size:
 .check.top { margin: 0 0 14px; }
 .new-pass { background: var(--bg); border-radius: 10px; padding: 10px 12px; margin-top: 8px; font-size: .92rem; }
 .new-pass code { font-size: 1.05rem; font-weight: 700; user-select: all; }
+.share-box { margin-top: 8px; display: grid; gap: 8px; }
+.share-box textarea { width: 100%; min-height: 10em; font: inherit; font-size: .9rem; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); resize: vertical; }
+.share-box .row-btns { margin-top: 0; }
 .user-row .badge { white-space: nowrap; display: inline-block; margin-top: 2px; }
 
 /* Dose plan */

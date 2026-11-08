@@ -360,7 +360,7 @@ test('admin invites by email only; link carries a one-time token', async () => {
 
 test('accepting the invite: pick username, name, password', async () => {
   assert.equal((await kim('GET', '/api/invite/not-a-real-token')).status, 404);
-  assert.deepEqual((await kim('GET', `/api/invite/${inviteToken}`)).body, { email: 'kim@example.com' });
+  assert.deepEqual((await kim('GET', `/api/invite/${inviteToken}`)).body, { email: 'kim@example.com', name: '' });
   assert.equal((await kim('POST', `/api/invite/${inviteToken}`, { user: 'kimmy', password: 'kims-password', firstName: '' })).status, 400, 'first name required');
   assert.equal((await kim('POST', `/api/invite/${inviteToken}`, { user: 'alex', password: 'kims-password', firstName: 'Kim' })).status, 400, 'username taken');
   const ok = await kim('POST', `/api/invite/${inviteToken}`, { user: 'kimmy', password: 'kims-password', firstName: 'Kim', lastName: 'Lee' });
@@ -386,6 +386,41 @@ test('resend replaces the link; cancel removes the invite', async () => {
   assert.equal((await stranger('GET', `/api/invite/${second}`)).status, 200);
   await admin('DELETE', `/api/invites/${inv.id}`, undefined);
   assert.equal((await stranger('GET', `/api/invite/${second}`)).status, 404);
+});
+
+test('invite link to text: no email needed, link returned to the admin', async () => {
+  const before = sent.length;
+  const r = await admin('POST', '/api/invites', { name: 'Robin' });
+  assert.equal(r.status, 201);
+  assert.equal(r.body.emailed, false);
+  assert.equal(sent.length, before, 'nothing emailed');
+  assert.match(r.body.link, /^https:\/\/pt\.example\.com\/\?invite=[\w-]{30,}$/);
+  const token = new URL(r.body.link).searchParams.get('invite');
+  const list = (await admin('GET', '/api/invites')).body;
+  assert.equal(list.find(i => i.id === r.body.id).name, 'Robin');
+  assert.ok(!JSON.stringify(list).includes(token), 'token never listed');
+  // New link: old one stops working; still not emailed (no address)
+  const again = await admin('POST', `/api/invites/${r.body.id}/resend`, {});
+  assert.equal(again.body.emailed, false);
+  assert.equal((await stranger('GET', `/api/invite/${token}`)).status, 404);
+  const token2 = new URL(again.body.link).searchParams.get('invite');
+  assert.deepEqual((await stranger('GET', `/api/invite/${token2}`)).body, { email: null, name: 'Robin' });
+  // They can add an email while setting up
+  const robin = client();
+  assert.equal((await robin('POST', `/api/invite/${token2}`, { user: 'robin', password: 'robins-password', firstName: 'Robin', email: 'bad' })).status, 400);
+  assert.equal((await robin('POST', `/api/invite/${token2}`, { user: 'robin', password: 'robins-password', firstName: 'Robin', email: 'robin@example.com' })).status, 200);
+  assert.equal((await admin('GET', '/api/users')).body.find(u => u.user === 'robin').email, 'robin@example.com');
+  // Email given but "don't email it": link only
+  const quiet = await admin('POST', '/api/invites', { email: 'sam@example.com', sendEmail: false });
+  assert.equal(quiet.body.emailed, false);
+  assert.equal(sent.length, before);
+  await admin('DELETE', `/api/invites/${quiet.body.id}`, undefined);
+});
+
+test('creating a user returns a sign-in link to text them', async () => {
+  const r = await admin('POST', '/api/users', { user: 'tempy', password: 'temporary1' });
+  assert.equal(r.body.loginLink, 'https://pt.example.com/?u=tempy');
+  await admin('DELETE', `/api/users/${r.body.id}`, undefined);
 });
 
 test('sign in with email address (any case)', async () => {
