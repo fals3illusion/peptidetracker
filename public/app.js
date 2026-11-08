@@ -307,6 +307,8 @@ function openAccount(u, isSelf) {
   $('accEmail').dataset.original = u.email || '';
   $('accCurrent').value = '';
   $('accCurrentWrap').hidden = true;
+  $('accUnitWrap').hidden = !isSelf;   // your own display unit (per person)
+  $('accUnit').value = unit();
   $('accountMsg').textContent = '';
   $('accountDialog').showModal();
 }
@@ -329,6 +331,7 @@ $('accountForm').addEventListener('submit', async ev => {
       state.me = await api('PUT', '/api/me', { ...body, current: $('accCurrent').value });
       firstName = state.me.firstName;
       $('whoami').textContent = `Signed in as ${firstName ? `${firstName} (${user})` : user}`;
+      if ($('accUnit').value !== unit()) { await api('PUT', '/api/settings', { unit: $('accUnit').value }); await refresh(); }
     }
     $('accountDialog').close();
   } catch (e) { $('accountMsg').textContent = e.message; }
@@ -356,9 +359,9 @@ function renderSync() {
 function renderVersion() {
   const v = state.version;
   if (!v) { $('versionLine').textContent = ''; return; }
-  $('versionLine').innerHTML = `PeptideTracker v${esc(v.current)}${role === 'admin'
-    ? ` · <a href="#update">${v.latest ? `v${esc(v.latest)} available` : 'Updates'}</a>` : ''}`;
-  const bar = role === 'admin' && !!v.latest && location.hash !== '#update';
+  $('versionLine').innerHTML = `PeptideTracker v${esc(v.current)}${role === 'admin' && v.latest
+    ? ` · <a href="#update">v${esc(v.latest)} available</a>` : ''}`;
+  const bar = role === 'admin' && !!v.latest && !['#update', '#about'].includes(location.hash);
   $('updateBar').hidden = !bar;
   $('updateBar').textContent = v.latest ? `⬆ Update v${v.latest} available` : '';
   document.body.classList.toggle('has-update-bar', bar);
@@ -371,7 +374,6 @@ $('disclaimerForm').addEventListener('submit', async ev => {
 });
 function render() {
   document.querySelectorAll('.u').forEach(el => (el.textContent = unit()));
-  $('unit').value = unit();
   const { goal, goalDate } = state.settings;
   if (document.activeElement !== $('goal')) $('goal').value = goal != null ? fmtNum(goal) : '';
   if (document.activeElement !== $('goalDate')) $('goalDate').value = goalDate ? localDateValue(goalDate) : '';
@@ -1536,11 +1538,6 @@ $('goalForm').addEventListener('submit', async ev => {
   } catch (e) { $('goalMsg').textContent = e.message; }
 });
 
-$('unit').addEventListener('change', async ev => {
-  await api('PUT', '/api/settings', { unit: ev.target.value });
-  await refresh();
-});
-
 $('exportBtn').addEventListener('click', () => {
   const q = s => `"${String(s ?? '').replace(/"/g, '""')}"`;
   const lines = [`date,weight_${unit()},note,dose`, ...state.entries.map(e => {
@@ -2655,7 +2652,7 @@ $('invBack').addEventListener('click', async () => {
 const ADMIN_TABS = { users: { panel: 'adminUsers', load: loadUsersTab }, email: { panel: 'adminEmail', load: loadEmailTab }, backup: { panel: 'adminBackup', load: loadBackupTab } };
 function route() {
   if ($('authView').hidden === false) return;
-  const page = { '#inventory': 'invView', '#meds': 'medsView', '#photos': state.settings.photos === true ? 'photosView' : null, '#update': role === 'admin' ? 'updateView' : null }[location.hash] || null;
+  const page = { '#inventory': 'invView', '#meds': 'medsView', '#photos': state.settings.photos === true ? 'photosView' : null, '#update': 'updateView', '#about': 'updateView' }[location.hash] || null;
   if (state.version) renderVersion();
   if (page) {
     for (const v of ['appView', 'adminView', 'invView', 'medsView', 'photosView', 'updateView']) $(v).hidden = v !== page;
@@ -2829,6 +2826,14 @@ function showProgress(text, cls = '', log = '') {
   $('updLog').textContent = log;
 }
 async function loadUpdatePage() {
+  const admin = role === 'admin';
+  $('gfCard').hidden = !admin;
+  $('updNow').hidden = $('updCheck').hidden = !admin;
+  if (!admin) {   // everyone else just sees the version
+    $('updVersions').innerHTML = `<div class="big">PeptideTracker v${esc(state.version?.current || '')}</div><div class="muted">Your admin keeps it up to date.</div>`;
+    $('updHelp').textContent = ''; $('updNotesCard').hidden = true; $('updProgress').hidden = true;
+    return;
+  }
   try {
     const d = await api('GET', '/api/admin/update');
     showUpdate(d);
@@ -2878,6 +2883,7 @@ $('updCheck').addEventListener('click', async () => {
   } catch (e) { showProgress(e.message, 'bad'); }
   finally { $('updCheck').disabled = false; }
 });
+$('aboutBtn').addEventListener('click', () => { document.querySelector('.menu').open = false; location.hash = '#about'; });
 $('updateBack').addEventListener('click', () => { clearInterval(updPoll); history.pushState(null, '', location.pathname + location.search); route(); });
 
 // ---------- start ----------

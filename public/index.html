@@ -131,12 +131,8 @@
   <header>
     <h1>PeptideTracker</h1>
     <div class="header-actions">
-      <select id="unit" class="unit-sel" aria-label="Units">
-        <option value="lb">lb</option>
-        <option value="kg">kg</option>
-      </select>
       <details class="menu">
-        <summary aria-label="Account menu">⋯<span class="warn-dot" id="syncDot" hidden></span></summary>
+        <summary aria-label="Menu and settings" title="Menu and settings"><svg class="gear" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="warn-dot" id="syncDot" hidden></span></summary>
         <div class="menu-pop">
           <div class="muted small" id="whoami"></div>
           <div class="small" id="syncStatus"></div>
@@ -147,6 +143,7 @@
           <button type="button" id="invBtn">Inventory</button>
           <button type="button" id="photosBtn" hidden>Progress photos</button>
           <button type="button" id="adminBtn" hidden>Admin</button>
+          <button type="button" id="aboutBtn">About &amp; updates</button>
           <button type="button" id="pwBtn">Change password</button>
           <button type="button" id="logoutBtn">Log out</button>
         </div>
@@ -377,9 +374,9 @@
 <main id="updateView" hidden>
   <header class="admin-head">
     <button type="button" class="back-btn" id="updateBack" aria-label="Back to tracker">‹ Back</button>
-    <h1>Updates</h1>
+    <h1>About &amp; updates</h1>
   </header>
-  <section class="card">
+  <section class="card" id="updCard">
     <div class="update-versions" id="updVersions"></div>
     <div class="row-btns">
       <button type="button" class="primary" id="updNow" hidden>Update now</button>
@@ -395,6 +392,25 @@
     <h2 id="updNotesTitle">What’s new</h2>
     <div class="release-notes" id="updNotes"></div>
     <p class="small"><a id="updLink" href="#" target="_blank" rel="noopener">View on GitHub</a></p>
+  </section>
+  <section class="card" id="gfCard" hidden>
+    <h2>Grafana dashboard</h2>
+    <p class="small">A ready-made dashboard — weight trend with dose changes, weight lost per week, doses, shots, vials and spending, with a person picker. When you import it, Grafana asks you to pick <b>your own</b> PostgreSQL data source, so it works with any install.</p>
+    <p class="muted small help">Needs the database backup turned on (Admin → Backup &amp; Grafana), which also has the copy-paste SQL for a read-only Grafana user.</p>
+    <div class="row-btns">
+      <a class="btn" href="/api/admin/grafana-dashboard" download>Download dashboard</a>
+      <a class="btn" href="#admin/backup">Setup steps</a>
+    </div>
+  </section>
+  <section class="card">
+    <h2>About PeptideTracker</h2>
+    <p class="small">Self-hosted and open source (MIT license). Your data stays on your own server.</p>
+    <div class="row-btns">
+      <a class="btn" href="https://github.com/fals3illusion/peptidetracker" target="_blank" rel="noopener">GitHub</a>
+      <a class="btn" href="https://github.com/fals3illusion/peptidetracker/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a>
+      <a class="btn" href="https://github.com/fals3illusion/peptidetracker/issues/new" target="_blank" rel="noopener">Report a problem / idea</a>
+    </div>
+    <p class="muted small help">PeptideTracker is a personal logging tool for educational and research purposes. It is not medical advice, doesn’t sell or supply anything, and isn’t affiliated with any manufacturer or pharmacy. Provided as-is, with no warranty.</p>
   </section>
 </main>
 
@@ -849,6 +865,7 @@
       <div><label for="accFirst">First name</label><input id="accFirst" autocomplete="given-name" maxlength="60"></div>
       <div><label for="accLast">Last name</label><input id="accLast" autocomplete="family-name" maxlength="60"></div>
       <div class="full"><label for="accUser">Username</label><input id="accUser" readonly></div>
+      <div class="full" id="accUnitWrap"><label for="accUnit">Weight in</label><select id="accUnit"><option value="lb">Pounds (lb)</option><option value="kg">Kilograms (kg)</option></select></div>
       <div class="full"><label for="accEmail">Email</label><input id="accEmail" type="email" autocapitalize="none" spellcheck="false" autocomplete="email" placeholder="Used for sign-in and password resets"></div>
       <div class="full" id="accCurrentWrap" hidden><label for="accCurrent">Current password (needed to change your email)</label><input id="accCurrent" type="password" autocomplete="current-password"></div>
     </div>

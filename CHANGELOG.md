@@ -26,6 +26,8 @@ All notable changes to PeptideTracker. Run `update` in the container to get the 
 - Admin setup checklist.
 - Updates from the app: the admin sees “Update vX available” at the bottom of the page, opens the release
   notes, and clicks Update now (backup first, automatic rollback). Checks GitHub twice a day, or on demand.
+- About & updates page (⋯ menu): version, release notes, links, and the Grafana dashboard template for admins.
+- Weight unit (lb/kg) is set in My account; the menu button is a gear.
 - Installer tested on Proxmox VE: picks the Debian template for your CPU and cleans up if setup fails.
 - Invite links you can text or email: one-time sign-up link with Copy and Share buttons; or a username +
   temporary password with a ready-to-text sign-in message.
