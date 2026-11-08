@@ -4,27 +4,7 @@ All notable changes to PeptideTracker. Run `update` in the container to get the 
 
 ## [Unreleased]
 
-### Added
-- Invite links you can text: Admin → Users → "Invite link" makes a one-time sign-up link with **Copy** and
-  **Share** buttons (Share opens Messages on a phone). Email is optional; "New link" on a waiting invite makes a fresh one.
-- Creating a username + temporary password now gives you a ready-to-text message with the sign-in link,
-  username and temporary password (also after an admin password reset).
-- People who join with a texted link can add their email while setting up.
-
-### Fixed
-- Proxmox installer picked the ARM (arm64) Debian template on regular PCs when Proxmox lists both, so the
-  container couldn't start. It now matches the host's CPU, and removes the container if setup fails partway.
-- Page header buttons (‹ Back, + Add medication) no longer wrap onto two lines on narrow phones.
-
-## [1.0.1] - 2026-11-07
-
-### Changed
-- Database backup tables are now named `pt_*` (were `wt_*` from the app's earlier name). Existing
-  backups are renamed automatically on first start — data, indexes and Grafana's read access are kept.
-  Re-import the Grafana dashboard from Admin → Backup & Grafana to use the new names.
-- Login cookie renamed. The old one still works and is switched to the new one automatically, so nobody is signed out; logging out clears both.
-
-## [1.0.0] - 2026-11-07
+## [1.0.0] - 2026-11-08
 
 ### First public release
 - Shots and vials: mg or syringe units, what's left in each vial, cost per shot, split doses
@@ -44,3 +24,5 @@ All notable changes to PeptideTracker. Run `update` in the container to get the 
 - Admin → Backup & Grafana: connect a PostgreSQL backup from the app (with a connection test), copy-paste setup SQL, and download the Grafana dashboard.
 - Restore a new install from a PostgreSQL backup on the setup screen.
 - Admin setup checklist.
+- Invite links you can text or email: one-time sign-up link with Copy and Share buttons; or a username +
+  temporary password with a ready-to-text sign-in message.

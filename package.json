@@ -1,6 +1,6 @@
 {
   "name": "peptidetracker",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "description": "Self-hosted tracker for peptide and GLP-1 shots, vials, inventory, schedules and progress",
