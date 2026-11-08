@@ -374,6 +374,30 @@
 </dialog>
 
 <!-- Inventory page -->
+<main id="updateView" hidden>
+  <header class="admin-head">
+    <button type="button" class="back-btn" id="updateBack" aria-label="Back to tracker">‹ Back</button>
+    <h1>Updates</h1>
+  </header>
+  <section class="card">
+    <div class="update-versions" id="updVersions"></div>
+    <div class="row-btns">
+      <button type="button" class="primary" id="updNow" hidden>Update now</button>
+      <button type="button" id="updCheck">Check for updates</button>
+    </div>
+    <p class="muted small help" id="updHelp"></p>
+    <div id="updProgress" hidden>
+      <div class="upd-status" id="updStatus" role="status"></div>
+      <details id="updLogWrap" hidden><summary>Details</summary><pre id="updLog"></pre></details>
+    </div>
+  </section>
+  <section class="card" id="updNotesCard" hidden>
+    <h2 id="updNotesTitle">What’s new</h2>
+    <div class="release-notes" id="updNotes"></div>
+    <p class="small"><a id="updLink" href="#" target="_blank" rel="noopener">View on GitHub</a></p>
+  </section>
+</main>
+
 <main id="photosView" hidden>
   <header class="admin-head">
     <button type="button" class="back-btn" id="photosBack" aria-label="Back to tracker">‹ Back</button>
@@ -876,6 +900,7 @@
   </form>
 </dialog>
 
+<a id="updateBar" class="update-bar" href="#update" hidden></a>
 <div id="toast" class="toast" role="status" hidden></div>
 <script type="module" src="app.js"></script>
 </body>

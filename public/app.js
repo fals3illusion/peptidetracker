@@ -356,8 +356,12 @@ function renderSync() {
 function renderVersion() {
   const v = state.version;
   if (!v) { $('versionLine').textContent = ''; return; }
-  $('versionLine').innerHTML = `PeptideTracker v${esc(v.current)}${v.latest
-    ? ` · <a href="${esc(v.url)}" target="_blank" rel="noopener">v${esc(v.latest)} available</a><br><span class="muted">Update: type <code>update</code> in the container’s console</span>` : ''}`;
+  $('versionLine').innerHTML = `PeptideTracker v${esc(v.current)}${role === 'admin'
+    ? ` · <a href="#update">${v.latest ? `v${esc(v.latest)} available` : 'Updates'}</a>` : ''}`;
+  const bar = role === 'admin' && !!v.latest && location.hash !== '#update';
+  $('updateBar').hidden = !bar;
+  $('updateBar').textContent = v.latest ? `⬆ Update v${v.latest} available` : '';
+  document.body.classList.toggle('has-update-bar', bar);
 }
 $('disclaimerDialog').addEventListener('cancel', ev => ev.preventDefault()); // must be acknowledged
 $('disclaimerForm').addEventListener('submit', async ev => {
@@ -2651,16 +2655,18 @@ $('invBack').addEventListener('click', async () => {
 const ADMIN_TABS = { users: { panel: 'adminUsers', load: loadUsersTab }, email: { panel: 'adminEmail', load: loadEmailTab }, backup: { panel: 'adminBackup', load: loadBackupTab } };
 function route() {
   if ($('authView').hidden === false) return;
-  const page = { '#inventory': 'invView', '#meds': 'medsView', '#photos': state.settings.photos === true ? 'photosView' : null }[location.hash] || null;
+  const page = { '#inventory': 'invView', '#meds': 'medsView', '#photos': state.settings.photos === true ? 'photosView' : null, '#update': role === 'admin' ? 'updateView' : null }[location.hash] || null;
+  if (state.version) renderVersion();
   if (page) {
-    for (const v of ['appView', 'adminView', 'invView', 'medsView', 'photosView']) $(v).hidden = v !== page;
+    for (const v of ['appView', 'adminView', 'invView', 'medsView', 'photosView', 'updateView']) $(v).hidden = v !== page;
     window.scrollTo(0, 0);
-    if (page === 'invView') renderInventory(); else if (page === 'medsView') renderMeds(); else loadPhotos();
+    if (page === 'invView') renderInventory(); else if (page === 'medsView') renderMeds(); else if (page === 'updateView') loadUpdatePage(); else loadPhotos();
     return;
   }
   $('invView').hidden = true;
   $('medsView').hidden = true;
   $('photosView').hidden = true;
+  $('updateView').hidden = true;
   const m = location.hash.match(/^#admin(?:\/(\w+))?$/);
   if (!m || role !== 'admin') {
     $('adminView').hidden = true;
@@ -2781,6 +2787,98 @@ $('photoDelete').addEventListener('click', async () => {
 });
 $('photosBtn').addEventListener('click', () => { document.querySelector('.menu').open = false; location.hash = '#photos'; });
 $('photosBack').addEventListener('click', () => { history.pushState(null, '', location.pathname + location.search); route(); });
+
+// ---------- updates (#update, admin) ----------
+// Release notes come from the changelog on GitHub: headings, bullet points, **bold**, `code`.
+function renderNotes(md) {
+  const inline = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>');
+  const out = []; let list = null;
+  const flush = () => { if (list) { out.push(`<ul>${list.map(li => `<li>${inline(li)}</li>`).join('')}</ul>`); list = null; } };
+  for (const line of String(md || '').split('\n')) {
+    if (/^#{1,6}\s/.test(line)) { flush(); out.push(`<h4>${inline(line.replace(/^#+\s*/, ''))}</h4>`); }
+    else if (/^\s*[-*]\s+/.test(line)) { (list ||= []).push(line.replace(/^\s*[-*]\s+/, '')); }
+    else if (list && /^\s{2,}\S/.test(line)) list[list.length - 1] += ' ' + line.trim();
+    else if (line.trim()) { flush(); out.push(`<p>${inline(line)}</p>`); }
+    else flush();
+  }
+  flush();
+  return out.join('') || '<p class="muted">No notes for this version.</p>';
+}
+let updPoll = null, updTarget = null;
+function showUpdate(d) {
+  const when = d.checkedAt ? `checked ${timeAgo(d.checkedAt)}` : 'not checked yet';
+  $('updVersions').innerHTML = d.available
+    ? `<div class="big">v${esc(d.latest)} is available</div><div class="muted">You have v${esc(d.current)}${d.published ? ` · released ${fmtDate(d.published)}` : ''} · ${esc(when)}</div>`
+    : `<div class="big">You’re up to date</div><div class="muted">PeptideTracker v${esc(d.current)} · ${esc(when)}${d.lastError ? ` · couldn’t reach GitHub (${esc(d.lastError)})` : ''}</div>`;
+  const busy = ['requested', 'running'].includes(d.status?.state) || (d.requested && !d.status);
+  $('updNow').hidden = !(d.available && d.canSelfUpdate) || busy;
+  $('updNow').textContent = `Update to v${d.latest || ''}`;
+  $('updHelp').innerHTML = d.available && !d.canSelfUpdate
+    ? 'To update this install, open the container’s console and type <code>update</code>.'
+    : d.available ? 'Your data is backed up first. If the new version doesn’t start, the current one is put back automatically. Takes about a minute.' : '';
+  $('updNotesCard').hidden = !d.latest;
+  $('updNotesTitle').textContent = d.available ? `What’s new in v${d.latest}` : `Release notes — v${d.latest || ''}`;
+  $('updNotes').innerHTML = renderNotes(d.notes);
+  $('updLink').href = d.url || '#';
+}
+function showProgress(text, cls = '', log = '') {
+  $('updProgress').hidden = false;
+  $('updStatus').className = `upd-status ${cls}`;
+  $('updStatus').textContent = text;
+  $('updLogWrap').hidden = !log;
+  $('updLog').textContent = log;
+}
+async function loadUpdatePage() {
+  try {
+    const d = await api('GET', '/api/admin/update');
+    showUpdate(d);
+    const st = d.status;
+    if (d.requested || ['requested', 'running'].includes(st?.state)) { updTarget = st?.to || d.latest; startUpdPoll(); }
+    else if (st?.state === 'failed' && Date.now() - st.at < 3600e3) showProgress(`Last update failed: ${st.message}`, 'bad', d.log);
+    else $('updProgress').hidden = true;
+  } catch (e) { showProgress(e.message, 'bad'); }
+}
+function startUpdPoll() {
+  clearInterval(updPoll);
+  showProgress('Starting the update…');
+  updPoll = setInterval(async () => {
+    try {
+      const res = await fetch('/api/admin/update', { cache: 'no-store' });
+      if (!res.ok) throw new Error(String(res.status));
+      const d = await res.json();
+      const st = d.status || {};
+      if (st.state === 'done' || (updTarget && d.current === updTarget && !d.requested && st.state !== 'running')) {
+        clearInterval(updPoll);
+        showProgress(`Updated to v${d.current}. Reloading…`, 'ok');
+        setTimeout(() => location.reload(), 1500);
+      } else if (st.state === 'failed') {
+        clearInterval(updPoll);
+        showUpdate(d);
+        showProgress(`Update failed: ${st.message}`, 'bad', d.log);
+      } else if (st.state === 'uptodate') {
+        clearInterval(updPoll);
+        showUpdate(d);
+        showProgress('Already up to date.', 'ok');
+      } else showProgress(`${st.message || 'Working'}…`, '', d.log);
+    } catch { showProgress('Restarting PeptideTracker…'); } // the app is briefly offline while it restarts
+  }, 2000);
+}
+$('updNow').addEventListener('click', async () => {
+  if (!confirm(`Update PeptideTracker to v${updTarget = $('updNow').textContent.replace(/^Update to v/, '')}? Your data is backed up first.`)) return;
+  try { await api('POST', '/api/admin/update', {}); $('updNow').hidden = true; startUpdPoll(); }
+  catch (e) { showProgress(e.message, 'bad'); }
+});
+$('updCheck').addEventListener('click', async () => {
+  $('updCheck').disabled = true;
+  try {
+    await api('POST', '/api/admin/update/check', {});
+    await loadUpdatePage();
+    state.version = { ...state.version, ...(await api('GET', '/api/data')).version };
+    renderVersion();
+  } catch (e) { showProgress(e.message, 'bad'); }
+  finally { $('updCheck').disabled = false; }
+});
+$('updateBack').addEventListener('click', () => { clearInterval(updPoll); history.pushState(null, '', location.pathname + location.search); route(); });
 
 // ---------- start ----------
 setEditMode(null);

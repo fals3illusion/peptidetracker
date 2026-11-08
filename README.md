@@ -71,7 +71,8 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/fals3illusion/peptidetra
 
 ## Update
 
-Open the container's console (or SSH in) and type:
+As admin, when a new version is out you'll see **“Update vX available”** at the bottom of the app: tap it to
+read the release notes and click **Update now**. Or open the container's console (or SSH in) and type:
 
 ```bash
 update

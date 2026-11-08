@@ -463,3 +463,19 @@ a.btn.disabled { pointer-events: none; opacity: .5; }
 @media (max-width: 420px) { .checklist li { grid-template-columns: 1.4em 1fr; } .checklist .linkish { grid-column: 2; justify-self: start; } }
 #adminBackup { display: grid; gap: 16px; }
 #adminBackup[hidden] { display: none; }
+
+/* Update bar and page */
+.update-bar { position: fixed; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 40;
+  background: var(--accent); color: var(--accent-ink); text-decoration: none; font-weight: 650; font-size: .92rem;
+  padding: 9px 16px; border-radius: 999px; box-shadow: 0 4px 18px rgb(0 0 0 / .22); white-space: nowrap; }
+body.has-update-bar { padding-bottom: 64px; }
+body.has-update-bar .toast { bottom: calc(max(16px, env(safe-area-inset-bottom)) + 52px); }
+.update-versions { display: grid; gap: 4px; margin-bottom: 8px; }
+.update-versions .big { font-size: 1.15rem; font-weight: 650; }
+.upd-status { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: var(--chip); font-weight: 550; }
+.upd-status.ok { color: #2f8f4e; }
+.upd-status.bad { color: var(--danger); }
+.release-notes h4 { margin: 14px 0 4px; font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-secondary); }
+.release-notes ul { margin: 4px 0; padding-left: 20px; display: grid; gap: 4px; }
+.release-notes p { margin: 6px 0; }
+.release-notes + p a, #updLink { color: var(--accent); }

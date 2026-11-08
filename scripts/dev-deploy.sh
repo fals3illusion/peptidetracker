@@ -27,7 +27,7 @@ rm -rf $APP.new && mkdir -p $APP.new && tar -xzf /tmp/pt-app.tgz -C $APP.new && 
 chown -R root:root $APP.new
 rm -rf $APP.old && mv $APP $APP.old && mv $APP.new $APP
 systemctl restart $SVC
-for i in $(seq 20); do curl -fsS http://127.0.0.1:$PORT/api/auth >/dev/null 2>&1 && { install -m 0755 $APP/scripts/update.sh /usr/local/bin/peptidetracker-update; echo "==> Up and running"; exit 0; }; sleep 1; done
+for i in $(seq 20); do curl -fsS http://127.0.0.1:$PORT/api/auth >/dev/null 2>&1 && { bash $APP/scripts/install-units.sh; echo "==> Up and running"; exit 0; }; sleep 1; done
 echo "!! New version didn't start, rolling back"; journalctl -u $SVC -n 20 --no-pager
 rm -rf $APP && mv $APP.old $APP && systemctl restart $SVC
 exit 1

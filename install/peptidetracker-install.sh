@@ -82,11 +82,7 @@ ReadWritePaths=$DATA
 [Install]
 WantedBy=multi-user.target
 EOF
-install -m 0755 "$APP/scripts/update.sh" /usr/local/bin/peptidetracker-update
-# `update` is what Proxmox helper-script containers use; keep it if something else owns it.
-if [ ! -e /usr/bin/update ] || grep -q peptidetracker /usr/bin/update 2>/dev/null; then
-  printf '#!/usr/bin/env bash\nexec /usr/local/bin/peptidetracker-update "$@"\n' > /usr/bin/update && chmod 0755 /usr/bin/update
-fi
+bash "$APP/scripts/install-units.sh"   # the `update` command and the app's "Update now" button
 systemctl daemon-reload
 systemctl enable -q "$SVC"
 systemctl restart "$SVC"
