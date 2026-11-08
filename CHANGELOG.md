@@ -24,5 +24,6 @@ All notable changes to PeptideTracker. Run `update` in the container to get the 
 - Admin → Backup & Grafana: connect a PostgreSQL backup from the app (with a connection test), copy-paste setup SQL, and download the Grafana dashboard.
 - Restore a new install from a PostgreSQL backup on the setup screen.
 - Admin setup checklist.
+- Installer tested on Proxmox VE: picks the Debian template for your CPU and cleans up if setup fails.
 - Invite links you can text or email: one-time sign-up link with Copy and Share buttons; or a username +
   temporary password with a ready-to-text sign-in message.

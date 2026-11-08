@@ -144,7 +144,7 @@ say "Installing PeptideTracker inside the container (a minute or two)"
 tmp=$(mktemp)
 curl -fsSL "$BASE/install/peptidetracker-install.sh" -o "$tmp" || die "Couldn't download the install script."
 pct push "$CTID" "$tmp" /root/peptidetracker-install.sh --perms 0755
-pct exec "$CTID" -- env PT_TZ="$TZ_HOST" ${PT_TARBALL_BASE:+PT_TARBALL_BASE="$PT_TARBALL_BASE"} bash /root/peptidetracker-install.sh
+pct exec "$CTID" -- env LANG=C.UTF-8 LC_ALL=C.UTF-8 PT_TZ="$TZ_HOST" ${PT_TARBALL_BASE:+PT_TARBALL_BASE="$PT_TARBALL_BASE"} bash /root/peptidetracker-install.sh
 pct exec "$CTID" -- rm -f /root/peptidetracker-install.sh
 CREATED=0
 

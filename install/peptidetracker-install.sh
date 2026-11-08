@@ -18,6 +18,8 @@ die() { printf '\033[31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
 
 say "Installing packages"
 export DEBIAN_FRONTEND=noninteractive
+# Avoid "Setting locale failed" noise when the caller's language isn't installed here.
+locale -a 2>/dev/null | grep -qi "^${LANG%%.*}" || export LANG=C.UTF-8 LC_ALL=C.UTF-8
 apt-get update -qq
 apt-get install -y -qq curl ca-certificates tar nodejs >/dev/null
 NODE_MAJOR=$(node -p 'process.versions.node.split(".")[0]')
