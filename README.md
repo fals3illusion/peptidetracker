@@ -98,7 +98,7 @@ Everything lives in `/var/lib/peptidetracker/` in the container (`data.json`, `u
 `photos/`). Passwords are scrypt-hashed and links/sessions are stored only as hashes. Back up the
 container with Proxmox's normal backups.
 
-**PostgreSQL backup (optional):** ⋯ → Admin → Backup & Grafana. Every change is copied to `wt_*`
+**PostgreSQL backup (optional):** ⋯ → Admin → Backup & Grafana. Every change is copied to `pt_*`
 tables within seconds; a new install can restore everything from it on the setup screen. Photos
 are not copied. (You can also set `PG_URL=postgres://user:password@host:5432/database` in
 `/etc/peptidetracker/env` instead; the app then restores from it automatically on an empty data

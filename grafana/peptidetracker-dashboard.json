@@ -57,7 +57,7 @@
           "rawQuery": true,
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT weight_lb AS \"lb\" FROM wt_entries WHERE user_id = '$person' ORDER BY taken_at DESC LIMIT 1"
+          "rawSql": "SELECT weight_lb AS \"lb\" FROM pt_entries WHERE user_id = '$person' ORDER BY taken_at DESC LIMIT 1"
         }
       ],
       "description": "",
@@ -110,7 +110,7 @@
           "rawQuery": true,
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT (SELECT weight_lb FROM wt_entries WHERE user_id = '$person' ORDER BY taken_at LIMIT 1) - (SELECT weight_lb FROM wt_entries WHERE user_id = '$person' ORDER BY taken_at DESC LIMIT 1) AS \"lb\""
+          "rawSql": "SELECT (SELECT weight_lb FROM pt_entries WHERE user_id = '$person' ORDER BY taken_at LIMIT 1) - (SELECT weight_lb FROM pt_entries WHERE user_id = '$person' ORDER BY taken_at DESC LIMIT 1) AS \"lb\""
         }
       ],
       "description": "",
@@ -163,7 +163,7 @@
           "rawQuery": true,
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT 100.0 * ((SELECT weight_lb FROM wt_entries WHERE user_id = '$person' ORDER BY taken_at LIMIT 1) - (SELECT weight_lb FROM wt_entries WHERE user_id = '$person' ORDER BY taken_at DESC LIMIT 1)) / (SELECT weight_lb FROM wt_entries WHERE user_id = '$person' ORDER BY taken_at LIMIT 1) AS \"pct\""
+          "rawSql": "SELECT 100.0 * ((SELECT weight_lb FROM pt_entries WHERE user_id = '$person' ORDER BY taken_at LIMIT 1) - (SELECT weight_lb FROM pt_entries WHERE user_id = '$person' ORDER BY taken_at DESC LIMIT 1)) / (SELECT weight_lb FROM pt_entries WHERE user_id = '$person' ORDER BY taken_at LIMIT 1) AS \"pct\""
         }
       ],
       "description": "",
@@ -216,7 +216,7 @@
           "rawQuery": true,
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT (SELECT weight_lb FROM wt_entries WHERE user_id = '$person' ORDER BY taken_at DESC LIMIT 1) - (settings->>'goal')::numeric AS \"lb\" FROM wt_settings WHERE user_id = '$person'"
+          "rawSql": "SELECT (SELECT weight_lb FROM pt_entries WHERE user_id = '$person' ORDER BY taken_at DESC LIMIT 1) - (settings->>'goal')::numeric AS \"lb\" FROM pt_settings WHERE user_id = '$person'"
         }
       ],
       "description": "",
@@ -269,7 +269,7 @@
           "rawQuery": true,
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT dose_mg AS \"mg\" FROM (SELECT min(taken_at) AS t, sum(dose_mg) AS dose_mg FROM wt_shots WHERE user_id = '$person' AND lower(name) NOT IN (SELECT lower(pr->>'name') FROM wt_settings ws, jsonb_array_elements(coalesce(ws.settings->'protocols', '[]'::jsonb)) pr WHERE ws.user_id = '$person') GROUP BY coalesce(group_id, to_char(date_trunc('minute', taken_at), 'YYYYMMDDHH24MI'))) d ORDER BY t DESC LIMIT 1"
+          "rawSql": "SELECT dose_mg AS \"mg\" FROM (SELECT min(taken_at) AS t, sum(dose_mg) AS dose_mg FROM pt_shots WHERE user_id = '$person' AND lower(name) NOT IN (SELECT lower(pr->>'name') FROM pt_settings ws, jsonb_array_elements(coalesce(ws.settings->'protocols', '[]'::jsonb)) pr WHERE ws.user_id = '$person') GROUP BY coalesce(group_id, to_char(date_trunc('minute', taken_at), 'YYYYMMDDHH24MI'))) d ORDER BY t DESC LIMIT 1"
         }
       ],
       "description": "Main GLP-1 only (medications with their own schedule are left out)",
@@ -322,7 +322,7 @@
           "rawQuery": true,
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT coalesce(sum(price), 0) AS \"usd\" FROM wt_supplies WHERE user_id = '$person'"
+          "rawSql": "SELECT coalesce(sum(price), 0) AS \"usd\" FROM pt_supplies WHERE user_id = '$person'"
         }
       ],
       "description": "",
@@ -375,7 +375,7 @@
           "rawQuery": true,
           "editorMode": "code",
           "format": "time_series",
-          "rawSql": "SELECT taken_at AS \"time\",\n       weight_lb AS \"Daily weigh-in\",\n       round(avg(weight_lb) OVER (ORDER BY taken_at RANGE BETWEEN interval '7 days' - interval '1 second' PRECEDING AND CURRENT ROW), 2) AS \"7-day average\",\n       (SELECT (settings->>'goal')::numeric FROM wt_settings WHERE user_id = '$person') AS \"Goal\"\nFROM wt_entries WHERE user_id = '$person'\nORDER BY 1"
+          "rawSql": "SELECT taken_at AS \"time\",\n       weight_lb AS \"Daily weigh-in\",\n       round(avg(weight_lb) OVER (ORDER BY taken_at RANGE BETWEEN interval '7 days' - interval '1 second' PRECEDING AND CURRENT ROW), 2) AS \"7-day average\",\n       (SELECT (settings->>'goal')::numeric FROM pt_settings WHERE user_id = '$person') AS \"Goal\"\nFROM pt_entries WHERE user_id = '$person'\nORDER BY 1"
         }
       ],
       "fieldConfig": {
@@ -501,7 +501,7 @@
           "rawQuery": true,
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT to_char(wk, 'Mon DD') AS \"Week of\",\n       round(avg_lb - lag(avg_lb) OVER (ORDER BY wk), 2) AS \"Change\"\nFROM (SELECT date_trunc('week', taken_at) AS wk, avg(weight_lb) AS avg_lb FROM wt_entries WHERE user_id = '$person' GROUP BY 1) w\nORDER BY wk"
+          "rawSql": "SELECT to_char(wk, 'Mon DD') AS \"Week of\",\n       round(avg_lb - lag(avg_lb) OVER (ORDER BY wk), 2) AS \"Change\"\nFROM (SELECT date_trunc('week', taken_at) AS wk, avg(weight_lb) AS avg_lb FROM pt_entries WHERE user_id = '$person' GROUP BY 1) w\nORDER BY wk"
         }
       ],
       "fieldConfig": {
@@ -547,7 +547,7 @@
           "rawQuery": true,
           "editorMode": "code",
           "format": "time_series",
-          "rawSql": "SELECT t AS \"time\", dose_mg AS \"Dose (mg)\" FROM (SELECT min(taken_at) AS t, sum(dose_mg) AS dose_mg FROM wt_shots WHERE user_id = '$person' AND lower(name) NOT IN (SELECT lower(pr->>'name') FROM wt_settings ws, jsonb_array_elements(coalesce(ws.settings->'protocols', '[]'::jsonb)) pr WHERE ws.user_id = '$person') GROUP BY coalesce(group_id, to_char(date_trunc('minute', taken_at), 'YYYYMMDDHH24MI'))) d ORDER BY 1"
+          "rawSql": "SELECT t AS \"time\", dose_mg AS \"Dose (mg)\" FROM (SELECT min(taken_at) AS t, sum(dose_mg) AS dose_mg FROM pt_shots WHERE user_id = '$person' AND lower(name) NOT IN (SELECT lower(pr->>'name') FROM pt_settings ws, jsonb_array_elements(coalesce(ws.settings->'protocols', '[]'::jsonb)) pr WHERE ws.user_id = '$person') GROUP BY coalesce(group_id, to_char(date_trunc('minute', taken_at), 'YYYYMMDDHH24MI'))) d ORDER BY 1"
         }
       ],
       "fieldConfig": {
@@ -602,7 +602,7 @@
           "rawQuery": true,
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT s.name || ' (' || to_char(s.opened_at, 'Mon DD') || '): ' ||\n       CASE WHEN s.kind = 'vial' THEN round(s.powder_mg - coalesce(sum(sh.dose_mg), 0), 1) || ' of ' || s.powder_mg || ' mg left'\n            ELSE (s.dose_count - count(sh.id)) || ' of ' || s.dose_count || ' doses left' END AS \"Vial\",\n       round(100.0 * CASE WHEN s.kind = 'vial' THEN (s.powder_mg - coalesce(sum(sh.dose_mg), 0)) / nullif(s.powder_mg, 0)\n            ELSE (s.dose_count - count(sh.id))::numeric / nullif(s.dose_count, 0) END, 1) AS \"% left\"\nFROM wt_supplies s LEFT JOIN wt_shots sh ON sh.supply_id = s.id\nWHERE NOT s.done AND s.user_id = '$person'\nGROUP BY s.id ORDER BY s.opened_at"
+          "rawSql": "SELECT s.name || ' (' || to_char(s.opened_at, 'Mon DD') || '): ' ||\n       CASE WHEN s.kind = 'vial' THEN round(s.powder_mg - coalesce(sum(sh.dose_mg), 0), 1) || ' of ' || s.powder_mg || ' mg left'\n            ELSE (s.dose_count - count(sh.id)) || ' of ' || s.dose_count || ' doses left' END AS \"Vial\",\n       round(100.0 * CASE WHEN s.kind = 'vial' THEN (s.powder_mg - coalesce(sum(sh.dose_mg), 0)) / nullif(s.powder_mg, 0)\n            ELSE (s.dose_count - count(sh.id))::numeric / nullif(s.dose_count, 0) END, 1) AS \"% left\"\nFROM pt_supplies s LEFT JOIN pt_shots sh ON sh.supply_id = s.id\nWHERE NOT s.done AND s.user_id = '$person'\nGROUP BY s.id ORDER BY s.opened_at"
         }
       ],
       "fieldConfig": {
@@ -655,7 +655,7 @@
           "rawQuery": true,
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT taken_at AS \"Date\", name AS \"Medication\", dose_mg AS \"mg\", units AS \"Units\", site AS \"Site\"\nFROM wt_shots WHERE user_id = '$person' ORDER BY taken_at DESC"
+          "rawSql": "SELECT taken_at AS \"Date\", name AS \"Medication\", dose_mg AS \"mg\", units AS \"Units\", site AS \"Site\"\nFROM pt_shots WHERE user_id = '$person' ORDER BY taken_at DESC"
         }
       ],
       "fieldConfig": {
@@ -703,7 +703,7 @@
           "rawQuery": true,
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT opened_at AS \"Date\", name AS \"Medication\", CASE WHEN kind = 'vial' THEN powder_mg || ' mg vial + ' || water_ml || ' mL' ELSE dose_count || ' doses' END AS \"What\", price AS \"Price\"\nFROM wt_supplies WHERE user_id = '$person' ORDER BY opened_at DESC"
+          "rawSql": "SELECT opened_at AS \"Date\", name AS \"Medication\", CASE WHEN kind = 'vial' THEN powder_mg || ' mg vial + ' || water_ml || ' mL' ELSE dose_count || ' doses' END AS \"What\", price AS \"Price\"\nFROM pt_supplies WHERE user_id = '$person' ORDER BY opened_at DESC"
         }
       ],
       "fieldConfig": {
@@ -750,8 +750,8 @@
           "type": "grafana-postgresql-datasource",
           "uid": "${DS_PEPTIDETRACKER}"
         },
-        "query": "SELECT coalesce(nullif(trim(concat_ws(' ', first_name, last_name)), ''), username) AS __text, user_id AS __value FROM wt_people ORDER BY username",
-        "definition": "SELECT coalesce(nullif(trim(concat_ws(' ', first_name, last_name)), ''), username) AS __text, user_id AS __value FROM wt_people ORDER BY username",
+        "query": "SELECT coalesce(nullif(trim(concat_ws(' ', first_name, last_name)), ''), username) AS __text, user_id AS __value FROM pt_people ORDER BY username",
+        "definition": "SELECT coalesce(nullif(trim(concat_ws(' ', first_name, last_name)), ''), username) AS __text, user_id AS __value FROM pt_people ORDER BY username",
         "refresh": 1,
         "includeAll": false,
         "multi": false,

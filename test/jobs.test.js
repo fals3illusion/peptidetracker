@@ -32,13 +32,13 @@ const at = (m, d, h, min = 0) => new Date(2026, m - 1, d, h, min).getTime();
 const sub = { endpoint: 'https://push.example.com/abc', keys: { p256dh: 'BKey', auth: 'secret' } };
 
 before(async () => {
-  dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'wt-jobs-'));
+  dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pt-jobs-'));
   app = createApp({ dataDir, publicDir: path.join(ROOT, 'public'), log: quiet, mailTransportFactory: fakeTransport, pushSender: fakePush, scheduler: false });
   server = http.createServer(app);
   await new Promise(r => server.listen(0, '127.0.0.1', r));
   base = `http://127.0.0.1:${server.address().port}`;
   await call('POST', '/api/setup', { user: 'alex', password: 'correct horse' });
-  await call('PUT', '/api/mail', { host: 'smtp.gmail.com', port: 587, user: 'me@gmail.com', pass: 'x', appUrl: 'https://wt.example.com' });
+  await call('PUT', '/api/mail', { host: 'smtp.gmail.com', port: 587, user: 'me@gmail.com', pass: 'x', appUrl: 'https://pt.example.com' });
   await call('PUT', '/api/me', { firstName: 'Alex', email: 'j@example.com', current: 'correct horse' });
   // Weekly Thursday shots, last one Thu Nov 5.
   for (const [m, d] of [[10, 22], [10, 29], [11, 5]]) await call('POST', '/api/shots', { t: at(m, d, 8), name: 'Tirzepatide', doseMg: 10 });
@@ -122,7 +122,7 @@ test('weekly summary goes out on the chosen day and time, once', async () => {
   assert.equal(mails[0].to, 'j@example.com');
   assert.match(mails[0].subject, /week/);
   assert.match(mails[0].text, /Hi Alex/);
-  assert.match(mails[0].html, /https:\/\/wt\.example\.com/);
+  assert.match(mails[0].html, /https:\/\/pt\.example\.com/);
   await app.tick(at(11, 15, 18, 6));
   assert.equal(mails.length, 1, 'only once');
 });

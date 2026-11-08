@@ -32,7 +32,7 @@ function client() {
 const admin = client(), wife = client(), stranger = client(), kim = client();
 
 before(async () => {
-  dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'wt-test-'));
+  dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pt-test-'));
   server = http.createServer(createApp({ dataDir, publicDir: path.join(ROOT, 'public'), log: quiet, mailTransportFactory: fakeTransport }));
   await new Promise(r => server.listen(0, '127.0.0.1', r));
   base = `http://127.0.0.1:${server.address().port}`;
@@ -274,12 +274,12 @@ test('email settings: admin only, password never returned, blank keeps it', asyn
   assert.deepEqual((await admin('GET', '/api/mail')).body, { configured: false });
   assert.equal((await admin('PUT', '/api/mail', { host: 'smtp.gmail.com', port: 99999, user: 'me@gmail.com' })).status, 400);
   assert.equal((await admin('PUT', '/api/mail', { host: 'bad host!', port: 587, user: 'me@gmail.com' })).status, 400);
-  const ok = await admin('PUT', '/api/mail', { host: 'smtp.gmail.com', port: 587, secure: false, user: 'me@gmail.com', pass: 'abcd efgh ijkl mnop', appUrl: 'https://wt.example.com/' });
+  const ok = await admin('PUT', '/api/mail', { host: 'smtp.gmail.com', port: 587, secure: false, user: 'me@gmail.com', pass: 'abcd efgh ijkl mnop', appUrl: 'https://pt.example.com/' });
   assert.equal(ok.status, 200);
   assert.equal(ok.body.pass, undefined);
   assert.equal(ok.body.hasPassword, true);
   assert.equal(ok.body.fromAddress, 'me@gmail.com', 'from defaults to the login');
-  assert.equal(ok.body.appUrl, 'https://wt.example.com', 'trailing slash trimmed');
+  assert.equal(ok.body.appUrl, 'https://pt.example.com', 'trailing slash trimmed');
   // Saving again without a password keeps the old one
   const again = await admin('PUT', '/api/mail', { host: 'smtp.gmail.com', port: 587, user: 'me@gmail.com', pass: '' });
   assert.equal(again.body.hasPassword, true);
@@ -307,7 +307,7 @@ test('adding a user with an email sends the invite', async () => {
   assert.equal(m.to, 'mom@example.com');
   assert.match(m.text, /Username: mom/);
   assert.match(m.text, /Temporary password: temp-pass-9/);
-  assert.match(m.text, /https:\/\/wt\.example\.com\/\?u=mom/);
+  assert.match(m.text, /https:\/\/pt\.example\.com\/\?u=mom/);
   assert.match(m.html, /temp-pass-9/);
   assert.equal(m.from.address, 'me@gmail.com');
   assert.equal((await admin('POST', '/api/users', { user: 'x2', password: 'temp-pass-9', email: 'nope' })).status, 400);
@@ -352,7 +352,7 @@ test('admin invites by email only; link carries a one-time token', async () => {
   assert.match(m.subject, /invited you/);
   inviteToken = tokenIn(m, 'invite');
   assert.ok(inviteToken.length > 30);
-  assert.match(m.text, /https:\/\/wt\.example\.com\/\?invite=/);
+  assert.match(m.text, /https:\/\/pt\.example\.com\/\?invite=/);
   const list = (await admin('GET', '/api/invites')).body;
   assert.deepEqual(list.map(i => i.email), ['kim@example.com']);
   assert.ok(!JSON.stringify(list).includes(inviteToken), 'token never listed');
@@ -479,4 +479,16 @@ test('logout locks data; usernames are case-insensitive', async () => {
 test('path traversal is blocked', async () => {
   const res = await fetch(base + '/%2e%2e/server.js');
   assert.ok([403, 404].includes(res.status));
+});
+
+test('login cookie from before the rename still works', async () => {
+  const fresh = client();
+  await fresh('POST', '/api/login', { user: 'alex', password: 'new password 1' });
+  const me = await fresh('GET', '/api/auth');
+  assert.equal(me.body.loggedIn, true);
+  // Same session token under the old cookie name
+  const r = await fetch(base + '/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: 'alex', password: 'new password 1' }) });
+  const token = r.headers.get('set-cookie').match(/pt_session=([^;]+)/)[1];
+  const old = await fetch(base + '/api/auth', { headers: { Cookie: `wt_session=${token}` } });
+  assert.equal((await old.json()).loggedIn, true);
 });

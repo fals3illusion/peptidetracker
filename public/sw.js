@@ -8,7 +8,7 @@ self.addEventListener('push', ev => {
   try { msg = ev.data ? ev.data.json() : {}; } catch { msg = { body: ev.data?.text() }; }
   ev.waitUntil(self.registration.showNotification(msg.title || 'PeptideTracker', {
     body: msg.body || '',
-    tag: msg.tag || 'wt',
+    tag: msg.tag || 'pt',
     icon: '/icon.svg',
     badge: '/icon.svg',
     data: { url: msg.url || '/' },

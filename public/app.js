@@ -2017,7 +2017,7 @@ function updateBackupHelp() {
 GRANT CONNECT ON DATABASE ${sqlName(db)} TO grafana_pt;
 \\c ${sqlName(db)}
 GRANT USAGE ON SCHEMA public TO grafana_pt;
-GRANT SELECT ON wt_entries, wt_shots, wt_supplies, wt_people, wt_settings TO grafana_pt;`;
+GRANT SELECT ON pt_entries, pt_shots, pt_supplies, pt_people, pt_settings TO grafana_pt;`;
   $('gfHost').textContent = `${$('bkHost').value.trim() || 'your-db'}:${$('bkPort').value.trim() || 5432}`;
   $('gfDb').textContent = db;
 }

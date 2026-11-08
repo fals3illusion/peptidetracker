@@ -13,7 +13,7 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const quiet = { log() {}, error() {} };
 
 test('single-user data becomes the admin profile', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wt-mig-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pt-mig-'));
   const salt = 'abcd';
   const hash = crypto.scryptSync('old password', salt, 64).toString('hex');
   const token = 'tok123';
@@ -31,7 +31,7 @@ test('single-user data becomes the admin profile', async () => {
   const base = `http://127.0.0.1:${server.address().port}`;
   try {
     // Already-signed-in phone stays signed in
-    const res = await fetch(base + '/api/data', { headers: { Cookie: `wt_session=${token}` } });
+    const res = await fetch(base + '/api/data', { headers: { Cookie: `pt_session=${token}` } });
     assert.equal(res.status, 200);
     const d = await res.json();
     assert.deepEqual(d.entries.map(e => e.weight), [250]);
@@ -57,7 +57,7 @@ test('single-user data becomes the admin profile', async () => {
 });
 
 test('unit-based schedules get the strength of the vial they were used with', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wt-ref-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pt-ref-'));
   fs.writeFileSync(path.join(dir, 'users.json'), JSON.stringify([{ id: 'u1', user: 'a', salt: 's', hash: 'h', role: 'admin' }]));
   fs.writeFileSync(path.join(dir, 'data.json'), JSON.stringify({ version: 2, profiles: { u1: {
     entries: [], inventory: [],

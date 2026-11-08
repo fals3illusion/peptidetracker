@@ -15,6 +15,13 @@ jobs:
     strategy:
       matrix:
         node: [20, 22]
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: test
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,6 +32,7 @@ jobs:
       - run: npm test
         env:
           TZ: America/Chicago
+          PG_TEST_URL: postgres://postgres:test@localhost:5432/postgres
       - name: Check shell scripts
         run: bash -n ct/peptidetracker.sh install/peptidetracker-install.sh scripts/*.sh
 
