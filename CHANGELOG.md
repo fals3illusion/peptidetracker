@@ -12,6 +12,8 @@ All notable changes to PeptideTracker. Run `update` in the container to get the 
 - People who join with a texted link can add their email while setting up.
 
 ### Fixed
+- Proxmox installer picked the ARM (arm64) Debian template on regular PCs when Proxmox lists both, so the
+  container couldn't start. It now matches the host's CPU, and removes the container if setup fails partway.
 - Page header buttons (‹ Back, + Add medication) no longer wrap onto two lines on narrow phones.
 
 ## [1.0.1] - 2026-11-07

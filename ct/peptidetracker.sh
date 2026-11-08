@@ -35,6 +35,18 @@ ${yel}  Disclaimer:${off} PeptideTracker is a personal logging tool for educatio
 
 EOF
 
+CREATED=0; tmp=""
+on_exit() {
+  local rc=$?
+  [ -n "$tmp" ] && rm -f "$tmp"
+  if [ "$rc" -ne 0 ] && [ "$CREATED" = 1 ]; then
+    printf '\n%s✗ Setup didn'"'"'t finish — removing container %s so you can run this again.%s\n' "$red" "$CTID" "$off" >&2
+    pct stop "$CTID" >/dev/null 2>&1 || true
+    pct destroy "$CTID" --purge >/dev/null 2>&1 || true
+  fi
+}
+trap on_exit EXIT
+
 [ "$(id -u)" = 0 ] || die "Run this as root in the Proxmox VE host shell."
 command -v pct >/dev/null && command -v pveam >/dev/null || die "This doesn't look like a Proxmox VE host (pct/pveam not found)."
 
@@ -89,8 +101,12 @@ fi
 # ---- template ----
 say "Finding the Debian 13 template"
 pveam update >/dev/null 2>&1 || true
-TEMPLATE=$(pveam available --section system 2>/dev/null | awk '/debian-13-standard/ {print $2}' | sort -V | tail -1)
-[ -n "$TEMPLATE" ] || die "Couldn't find a debian-13-standard template (pveam available --section system)."
+# Newer Proxmox lists templates for several CPU types (amd64, arm64); use the one that matches this host.
+ARCH=$(dpkg --print-architecture 2>/dev/null || echo amd64)
+pick_template() { grep -oE "debian-13-standard_[^ /]*_${ARCH}\.tar\.(zst|gz|xz)" | sort -V | tail -1; }
+TEMPLATE=$(pveam available --section system 2>/dev/null | pick_template)
+[ -n "$TEMPLATE" ] || TEMPLATE=$(pveam list "$TSTORAGE" 2>/dev/null | pick_template)   # offline: use one already downloaded
+[ -n "$TEMPLATE" ] || die "Couldn't find a Debian 13 template for $ARCH (pveam available --section system)."
 if ! pveam list "$TSTORAGE" 2>/dev/null | grep -q "$TEMPLATE"; then
   say "Downloading $TEMPLATE to $TSTORAGE"
   pveam download "$TSTORAGE" "$TEMPLATE" >/dev/null
@@ -111,6 +127,8 @@ pct create "$CTID" "$TSTORAGE:vztmpl/$TEMPLATE" \
   --tags peptidetracker --ostype debian \
   --description "PeptideTracker — https://github.com/$REPO (update: run 'update' in this container's console)" >/dev/null
 ok "Created"
+# If anything below fails, remove the half-made container so you can simply run this again.
+CREATED=1
 pct start "$CTID"
 
 say "Waiting for the network"
@@ -123,11 +141,12 @@ ok "Online"
 
 # ---- install inside ----
 say "Installing PeptideTracker inside the container (a minute or two)"
-tmp=$(mktemp); trap 'rm -f "$tmp"' EXIT
+tmp=$(mktemp)
 curl -fsSL "$BASE/install/peptidetracker-install.sh" -o "$tmp" || die "Couldn't download the install script."
 pct push "$CTID" "$tmp" /root/peptidetracker-install.sh --perms 0755
 pct exec "$CTID" -- env PT_TZ="$TZ_HOST" ${PT_TARBALL_BASE:+PT_TARBALL_BASE="$PT_TARBALL_BASE"} bash /root/peptidetracker-install.sh
 pct exec "$CTID" -- rm -f /root/peptidetracker-install.sh
+CREATED=0
 
 ADDR=$(pct exec "$CTID" -- hostname -I 2>/dev/null | awk '{print $1}')
 cat <<EOF
