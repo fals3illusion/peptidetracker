@@ -11,7 +11,11 @@ you and the people you invite.
   <img src="docs/screenshots/meds.png" width="200" alt="Medications: schedules, sites, vials and reorder dates">
   <img src="docs/screenshots/inventory.png" width="200" alt="Inventory and reorder planner">
 </p>
-<p align="center"><sub>Demo data. Works on your phone as a Home Screen app, in light and dark mode.</sub></p>
+<p align="center">
+  <img src="docs/screenshots/getting-started.png" width="200" alt="Get started: add a medication, a vial, log your first shot">
+  <img src="docs/screenshots/home-dark.png" width="200" alt="Home screen in dark mode">
+</p>
+<p align="center"><sub>Demo data. Works on your phone as a Home Screen app, in light and dark mode. New accounts start with a short Get started list.</sub></p>
 
 > **Disclaimer:** PeptideTracker is a personal logging tool for educational and research purposes.
 > It is not medical advice and doesn't recommend any dose, schedule or substance — dose plans and
