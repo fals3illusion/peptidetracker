@@ -1734,7 +1734,7 @@ function updateExtras() {
   $('weeklyBody').hidden = !$('setWeekly').checked;
   $('exportBody').hidden = !$('setExport').checked;
   const needs = [];
-  if (!state.me?.email) needs.push('add your email in ⋯ → My account');
+  if (!state.me?.email) needs.push('add your email in ⚙ menu → My account');
   if (!state.mailReady) needs.push(role === 'admin' ? 'set up email on the Admin page' : 'ask the admin to set up email');
   $('extrasHelp').textContent = ($('setWeekly').checked || $('setExport').checked) && needs.length ? `For emails: ${needs.join(' and ')}.` : '';
 }

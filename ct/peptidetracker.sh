@@ -156,7 +156,7 @@ ${grn}${bold}  PeptideTracker is running!${off}
   Open:   ${bold}http://$ADDR:3080${off}
           First visit: create your admin account — or "Restore from a PostgreSQL backup"
           if you're moving from another install.
-  Then:   ⋯ → Admin walks you through email, adding people, the database backup and Grafana.
+  Then:   ⚙ menu → Admin walks you through email, adding people, the database backup and Grafana.
   Update: open the container's console and type ${bold}update${off}
 
   Phone notifications and "Add to Home Screen" need HTTPS: put it behind a reverse proxy

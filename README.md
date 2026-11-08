@@ -56,7 +56,7 @@ change any of that), installs the latest release and starts it. Open `http://<co
 and create your admin account (first-time setup only works from your local network), or choose
 **Restore from a PostgreSQL backup** if you're moving from another install.
 
-Everything else is set up in the app, under **⋯ → Admin** (a checklist shows what's left):
+Everything else is set up in the app, under **⚙ menu → Admin** (a checklist shows what's left):
 
 - **Users** — invite people by email or create accounts with a temporary password.
 - **Email** — SMTP for invites, password resets, weekly summaries and exports.
@@ -80,7 +80,7 @@ update
 
 It checks for a newer release, backs up your data to `/var/backups/peptidetracker/` (last 10
 kept), installs it, and puts the old version back automatically if the new one doesn't start.
-The admin sees "vX.Y.Z available" in the app's ⋯ menu when there's a new release.
+The admin sees "vX.Y.Z available" in the app's ⚙ menu when there's a new release.
 What changed in each version: [CHANGELOG.md](CHANGELOG.md).
 
 ## HTTPS, phone app and notifications
@@ -97,7 +97,7 @@ No websockets needed. Logins use secure cookies automatically when the proxy sen
 
 ## Email (optional)
 
-As admin: ⋯ → Admin → Email. Gmail works with smtp.gmail.com, port 587, and a Google
+As admin: ⚙ menu → Admin → Email. Gmail works with smtp.gmail.com, port 587, and a Google
 [App Password](https://myaccount.google.com/apppasswords). Set "Link to the app" to your HTTPS
 address so links in emails work.
 
@@ -107,7 +107,7 @@ Everything lives in `/var/lib/peptidetracker/` in the container (`data.json`, `u
 `photos/`). Passwords are scrypt-hashed and links/sessions are stored only as hashes. Back up the
 container with Proxmox's normal backups.
 
-**PostgreSQL backup (optional):** ⋯ → Admin → Backup & Grafana. Every change is copied to `pt_*`
+**PostgreSQL backup (optional):** ⚙ menu → Admin → Backup & Grafana. Every change is copied to `pt_*`
 tables within seconds; a new install can restore everything from it on the setup screen. Photos
 are not copied. (You can also set `PG_URL=postgres://user:password@host:5432/database` in
 `/etc/peptidetracker/env` instead; the app then restores from it automatically on an empty data
