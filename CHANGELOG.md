@@ -4,6 +4,8 @@ All notable changes to PeptideTracker. Run `update` in the container to get the 
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-07
+
 ### First public release
 - Shots and vials: mg or syringe units, what's left in each vial, cost per shot, split doses
   across two vials, correct what's left.
