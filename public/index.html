@@ -141,6 +141,7 @@
           <button type="button" id="settingsBtn">Settings</button>
           <button type="button" id="medsBtn">Medications</button>
           <button type="button" id="invBtn">Inventory</button>
+          <a class="menu-link" id="grafanaBtn" href="#" target="_blank" rel="noopener" hidden>📊 Dashboards ↗</a>
           <button type="button" id="photosBtn" hidden>Progress photos</button>
           <button type="button" id="adminBtn" hidden>Admin</button>
           <button type="button" id="aboutBtn">About &amp; updates</button>
@@ -659,6 +660,9 @@
       <li><b>In Grafana:</b> Connections → Data sources → Add → PostgreSQL. Host <code id="gfHost">your-db:5432</code>, database <code id="gfDb">peptidetracker</code>, user <code>grafana_pt</code>, the password above, TLS off (unless you use SSL).</li>
       <li><b>Import the dashboard:</b> Dashboards → New → Import → upload this file, then pick the data source.
         <div class="row-btns"><a class="btn" id="gfDownload" href="/api/admin/grafana-dashboard" download>Download dashboard</a></div></li>
+      <li><b>Add it to the menu</b> (optional): enter your Grafana address and everyone gets a <b>📊 Dashboards</b> item in the ⚙ menu that opens their own charts.
+        <form id="gfForm" class="pw-row" style="margin-top:6px"><input id="gfUrl" type="url" autocapitalize="none" spellcheck="false" placeholder="https://grafana.example.com"><button type="submit">Save</button></form>
+        <div class="msg" id="gfMsg" role="status"></div></li>
     </ol>
     <p class="muted small">The dashboard has a “Person” picker. The read-only user can’t see passwords — Grafana only reads the <code>pt_people</code> and <code>pt_settings</code> views plus the data tables.</p>
   </section>

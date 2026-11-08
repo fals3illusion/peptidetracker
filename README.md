@@ -115,7 +115,7 @@ container with Proxmox's normal backups.
 tables within seconds; a new install can restore everything from it on the setup screen. Photos
 are not copied. (You can also set `PG_URL=postgres://user:password@host:5432/database` in
 `/etc/peptidetracker/env` instead; the app then restores from it automatically on an empty data
-folder.) The Grafana dashboard is in [`grafana/`](grafana/) and downloadable from the same page.
+folder.) The Grafana dashboard is in [`grafana/`](grafana/) and downloadable from the same page. Enter your Grafana address there and everyone gets a **📊 Dashboards** link in the ⚙ menu that opens their own charts (like TeslaMate).
 
 **Forgot the admin password?** In the container:
 

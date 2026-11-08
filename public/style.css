@@ -96,6 +96,7 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 }
 .menu-pop .muted { padding: 4px 6px; }
 .menu-pop button { text-align: left; min-height: 38px; font-weight: 500; }
+.menu-pop .menu-link { display: flex; align-items: center; min-height: 38px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 10px; color: var(--text-primary); text-decoration: none; font-weight: 500; background: var(--surface-1); }
 
 /* Login */
 .auth { min-height: 100vh; display: grid; place-items: center; padding: 20px; }

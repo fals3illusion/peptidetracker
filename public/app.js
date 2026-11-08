@@ -396,6 +396,8 @@ function render() {
   $('photosBtn').hidden = state.settings.photos !== true;
   renderSync();
   renderVersion();
+  $('grafanaBtn').hidden = !state.grafanaUrl;
+  if (state.grafanaUrl) $('grafanaBtn').href = state.grafanaUrl;
   renderHistory();
   if (!state.settings.disclaimerOk && !$('disclaimerDialog').open) $('disclaimerDialog').showModal();
 }
@@ -2070,11 +2072,22 @@ function fillBackup(b) {
   updateBackupHelp();
 }
 async function loadBackupTab() {
-  bkMsg('');
+  bkMsg(''); $('gfMsg').textContent = '';
+  api('GET', '/api/admin/grafana').then(r => { $('gfUrl').value = r.url; }).catch(() => {});
   gfPass ||= randomWord(); bkPass ||= randomWord();
   try { fillBackup(await api('GET', '/api/admin/backup')); } catch (e) { bkMsg(e.message); }
 }
 for (const id of ['bkHost', 'bkPort', 'bkDb', 'bkUser']) $(id).addEventListener('input', updateBackupHelp);
+$('gfForm').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  try {
+    const r = await api('PUT', '/api/admin/grafana', { url: $('gfUrl').value });
+    $('gfMsg').className = 'msg ok';
+    $('gfMsg').innerHTML = r.url ? `Saved. The ⚙ menu now has 📊 Dashboards. <a href="${esc(r.link)}" target="_blank" rel="noopener">Try your link ↗</a>` : 'Removed from the menu.';
+    await refresh();
+  } catch (e) { $('gfMsg').className = 'msg'; $('gfMsg').textContent = e.message; }
+});
+$('grafanaBtn').addEventListener('click', () => { document.querySelector('.menu').open = false; });
 $('bkTest').addEventListener('click', async () => {
   bkMsg('Connecting…', true);
   try {

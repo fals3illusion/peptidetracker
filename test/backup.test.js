@@ -103,3 +103,16 @@ test('only the admin can see or change the backup', opts, async () => {
   assert.equal((await a.call('GET', '/api/admin/backup')).status, 403);
   assert.equal((await a.call('PUT', '/api/admin/backup', { ...db, database: 'pt_bk_b' })).status, 403);
 });
+
+test('Grafana address adds a per-person Dashboards link', async () => {
+  const a = await startApp();
+  await a.call('POST', '/api/setup', { user: 'alex', password: 'correct horse' });
+  assert.equal((await a.call('GET', '/api/data')).body.grafanaUrl, null);
+  assert.equal((await a.call('PUT', '/api/admin/grafana', { url: 'javascript:alert(1)' })).status, 400);
+  const r = await a.call('PUT', '/api/admin/grafana', { url: 'https://grafana.example.com/' });
+  const me = (await a.call('GET', '/api/data')).body;
+  assert.equal(me.grafanaUrl, `https://grafana.example.com/d/peptidetracker/peptidetracker?var-person=${me.me.id}`);
+  assert.equal(r.body.link, me.grafanaUrl);
+  await a.call('PUT', '/api/admin/grafana', { url: '' });
+  assert.equal((await a.call('GET', '/api/data')).body.grafanaUrl, null);
+});
