@@ -8,7 +8,7 @@ All notable changes to PeptideTracker. Run `update` in the container to get the 
 - Database backup tables are now named `pt_*` (were `wt_*` from the app's earlier name). Existing
   backups are renamed automatically on first start — data, indexes and Grafana's read access are kept.
   Re-import the Grafana dashboard from Admin → Backup & Grafana to use the new names.
-- Login cookie renamed (old one still accepted, so nobody is signed out).
+- Login cookie renamed. The old one still works and is switched to the new one automatically, so nobody is signed out; logging out clears both.
 
 ## [1.0.0] - 2026-11-07
 

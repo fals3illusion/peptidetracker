@@ -491,4 +491,16 @@ test('login cookie from before the rename still works', async () => {
   const token = r.headers.get('set-cookie').match(/pt_session=([^;]+)/)[1];
   const old = await fetch(base + '/api/auth', { headers: { Cookie: `wt_session=${token}` } });
   assert.equal((await old.json()).loggedIn, true);
+  const moved = old.headers.getSetCookie();
+  assert.ok(moved.some(c => c.startsWith(`pt_session=${token};`)), 'moved to the new cookie');
+  assert.ok(moved.some(c => /^wt_session=;.*Max-Age=0/.test(c)), 'old cookie cleared');
+  // Logout ends the sessions behind both cookies and clears both.
+  const r2 = await fetch(base + '/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: 'alex', password: 'new password 1' }) });
+  const token2 = r2.headers.get('set-cookie').match(/pt_session=([^;]+)/)[1];
+  const out = await fetch(base + '/api/logout', { method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: `pt_session=${token2}; wt_session=${token}` }, body: '{}' });
+  assert.equal(out.headers.getSetCookie().filter(c => /Max-Age=0/.test(c)).length, 2);
+  for (const t of [token, token2]) {
+    const check = await fetch(base + '/api/auth', { headers: { Cookie: `pt_session=${t}` } });
+    assert.equal((await check.json()).loggedIn, false, 'both sessions ended');
+  }
 });
