@@ -25,6 +25,6 @@ test('update check reports a newer GitHub release only', async () => {
 
 test('private network addresses (first-time setup and proxy trust)', async () => {
   const { isPrivateIp } = await import('../lib/app.js');
-  for (const ip of ['127.0.0.1', '::1', '::ffff:192.168.2.10', '10.1.2.3', '172.20.0.5', '169.254.1.1', 'fd12:3456::1', 'fe80::1']) assert.equal(isPrivateIp(ip), true, ip);
+  for (const ip of ['127.0.0.1', '::1', '::ffff:192.168.1.10', '10.1.2.3', '172.20.0.5', '169.254.1.1', 'fd12:3456::1', 'fe80::1']) assert.equal(isPrivateIp(ip), true, ip);
   for (const ip of ['8.8.8.8', '172.32.0.1', '100.64.0.1', '2001:db8::1', '::ffff:1.2.3.4', '', undefined]) assert.equal(isPrivateIp(ip), false, String(ip));
 });
