@@ -5,6 +5,14 @@ injection-site rotation, inventory, reorder dates, reminders on your phone, and 
 with a projected goal date. Runs in a small Proxmox LXC (or any Debian 12/13 machine), private to
 you and the people you invite.
 
+<p align="center">
+  <img src="docs/screenshots/home-light.png" width="200" alt="Home: shot day, next shots and projected goal date">
+  <img src="docs/screenshots/progress.png" width="200" alt="Weight chart with dose changes, and weight loss per dose">
+  <img src="docs/screenshots/meds.png" width="200" alt="Medications: schedules, sites, vials and reorder dates">
+  <img src="docs/screenshots/inventory.png" width="200" alt="Inventory and reorder planner">
+</p>
+<p align="center"><sub>Demo data. Works on your phone as a Home Screen app, in light and dark mode.</sub></p>
+
 > **Disclaimer:** PeptideTracker is a personal logging tool for educational and research purposes.
 > It is not medical advice and doesn't recommend any dose, schedule or substance — dose plans and
 > projections only follow the numbers you enter. It does not sell or supply anything and is not

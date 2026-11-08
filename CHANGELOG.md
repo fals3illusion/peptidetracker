@@ -4,6 +4,9 @@ All notable changes to PeptideTracker. Run `update` in the container to get the 
 
 ## [Unreleased]
 
+### Fixed
+- Page header buttons (‹ Back, + Add medication) no longer wrap onto two lines on narrow phones.
+
 ## [1.0.1] - 2026-11-07
 
 ### Changed

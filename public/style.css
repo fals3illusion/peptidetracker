@@ -305,6 +305,9 @@ details.finished summary { cursor: pointer; color: var(--text-muted); font-size:
 /* Admin page */
 #adminView { max-width: 760px; margin: 0 auto; padding: 20px 16px 60px; padding-top: max(20px, env(safe-area-inset-top)); }
 .admin-head { display: flex; align-items: center; gap: 12px; justify-content: flex-start; }
+.admin-head > button, .admin-head .file-btn { white-space: nowrap; flex: none; }
+.admin-head h1 { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 420px) { .admin-head { gap: 8px; } .admin-head h1 { font-size: 1.25rem; } }
 .back-btn { min-height: 36px; padding: 4px 12px; font-weight: 500; }
 .tabs { display: flex; gap: 6px; margin-bottom: 14px; border-bottom: 1px solid var(--border); }
 .tabs button { background: transparent; border: 0; border-bottom: 2px solid transparent; border-radius: 0; min-height: 40px; padding: 6px 14px; color: var(--text-secondary); font-weight: 600; }
