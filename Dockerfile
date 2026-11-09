@@ -10,7 +10,7 @@ COPY public ./public
 COPY grafana ./grafana
 COPY node_modules ./node_modules
 # Empty data folder owned by the app user (a named volume starts with this ownership).
-COPY --chown=node:node docker/data/ /data/
+COPY --chown=node:node docker/emptydata/ /data/
 USER node
 VOLUME /data
 EXPOSE 3080
