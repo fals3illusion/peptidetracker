@@ -1,0 +1,45 @@
+name: Bug report
+description: Something isn't working right
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Thanks for reporting! Please don't include personal health data or passwords. Found a security problem? Use **Security → Report a vulnerability** instead (private)."
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. Go to …\n2. Tap …\n3. See …"
+  - type: input
+    id: version
+    attributes:
+      label: PeptideTracker version
+      description: ⚙ menu → About & updates
+      placeholder: v1.0.0
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How is it installed?
+      options: [Proxmox LXC (one-line installer), Docker, Debian install script, Other]
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Phone / browser
+      placeholder: iPhone 15, Safari Home Screen app
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs (optional)
+      description: "Proxmox/Debian: journalctl -u peptidetracker -n 50 · Docker: docker logs peptidetracker"
+      render: text

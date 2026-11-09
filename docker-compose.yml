@@ -1,0 +1,17 @@
+# PeptideTracker with Docker Compose:  docker compose up -d   →  http://<this-machine>:3080
+# Update:  docker compose pull && docker compose up -d   (your data stays in the volume)
+services:
+  peptidetracker:
+    image: ghcr.io/fals3illusion/peptidetracker:latest
+    container_name: peptidetracker
+    restart: unless-stopped
+    ports:
+      - "3080:3080"
+    environment:
+      - TZ=America/Chicago        # your time zone (used for shot-day reminders and summaries)
+      # - PG_URL=postgres://user:password@host:5432/database   # optional; or set it up in the app
+    volumes:
+      - peptidetracker-data:/data
+
+volumes:
+  peptidetracker-data:

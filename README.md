@@ -1,5 +1,10 @@
 # PeptideTracker
 
+[![Latest release](https://img.shields.io/github/v/release/fals3illusion/peptidetracker?label=release)](https://github.com/fals3illusion/peptidetracker/releases/latest)
+[![Tests](https://github.com/fals3illusion/peptidetracker/actions/workflows/release.yml/badge.svg)](https://github.com/fals3illusion/peptidetracker/actions/workflows/release.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Docker](https://img.shields.io/badge/docker-ghcr.io-2496ED?logo=docker&logoColor=white)](https://github.com/fals3illusion/peptidetracker/pkgs/container/peptidetracker)
+
 A self-hosted tracker for peptide and GLP-1 shots: vials and what's left in them, dose schedules,
 injection-site rotation, inventory, reorder dates, reminders on your phone, and your weight trend
 with a projected goal date. Runs in a small Proxmox LXC (or any Debian 12/13 machine), private to
@@ -67,16 +72,43 @@ Everything else is set up in the app, under **⚙ menu → Admin** (a checklist 
 - **Backup & Grafana** — connect a PostgreSQL database (test the connection first), copy-paste SQL to
   create the database and a read-only Grafana user, and download the Grafana dashboard.
 
-**Already have a Debian 12/13 machine?** Run this inside it instead:
+## Install on Debian 12/13
+
+Already have a Debian machine or VM? Run this inside it (as root):
 
 ```bash
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/fals3illusion/peptidetracker/main/install/peptidetracker-install.sh)"
 ```
 
+## Install with Docker
+
+```yaml
+# docker-compose.yml
+services:
+  peptidetracker:
+    image: ghcr.io/fals3illusion/peptidetracker:latest
+    container_name: peptidetracker
+    restart: unless-stopped
+    ports:
+      - "3080:3080"
+    environment:
+      - TZ=America/Chicago   # your time zone
+    volumes:
+      - peptidetracker-data:/data
+volumes:
+  peptidetracker-data:
+```
+
+`docker compose up -d`, then open `http://<host>:3080` and create your admin account right away.
+**Update:** `docker compose pull && docker compose up -d` (the app shows "Update available" with the
+release notes when there's a new version). Images are built for amd64 and arm64 (e.g. Raspberry Pi).
+Using a bind mount instead of a volume? Make the folder writable for user 1000: `chown 1000:1000 ./data`.
+
 ## Update
 
 As admin, when a new version is out you'll see **“Update vX available”** at the bottom of the app: tap it to
-read the release notes and click **Update now**. Or open the container's console (or SSH in) and type:
+read the release notes and click **Update now** (Proxmox/Debian installs). Docker: `docker compose pull && docker compose up -d`.
+Or open the container's console (or SSH in) and type:
 
 ```bash
 update

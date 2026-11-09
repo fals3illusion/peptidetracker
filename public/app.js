@@ -2861,7 +2861,7 @@ function showUpdate(d) {
   $('updNow').hidden = !(d.available && d.canSelfUpdate) || busy;
   $('updNow').textContent = `Update to v${d.latest || ''}`;
   $('updHelp').innerHTML = d.available && !d.canSelfUpdate
-    ? 'To update this install, open the container’s console and type <code>update</code>.'
+    ? (d.docker ? 'This is a Docker install. Update it with <code>docker compose pull &amp;&amp; docker compose up -d</code> — your data stays in its volume.' : 'To update this install, open the container’s console and type <code>update</code>.')
     : d.available ? 'Your data is backed up first. If the new version doesn’t start, the current one is put back automatically. Takes about a minute.' : '';
   $('updNotesCard').hidden = !d.latest;
   $('updNotesTitle').textContent = d.available ? `What’s new in v${d.latest}` : `Release notes — v${d.latest || ''}`;

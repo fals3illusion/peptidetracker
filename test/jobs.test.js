@@ -184,3 +184,15 @@ test('data includes the app version; disclaimer is remembered', async () => {
   assert.equal(d.sent, undefined, 'internal bookkeeping not sent to the page');
   assert.equal((await call('PUT', '/api/settings', { disclaimerOk: true })).body.disclaimerOk, true);
 });
+
+test('download all my data: one JSON file, only my own data', async () => {
+  const res = await fetch(base + '/api/export', { headers: { Cookie: cookie } });
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get('content-disposition'), /attachment; filename="peptidetracker-alex-\d{4}-\d\d-\d\d\.json"/);
+  const d = await res.json();
+  assert.equal(d.app, 'PeptideTracker');
+  assert.equal(d.account.username, 'alex');
+  assert.ok(d.entries.length > 0 && d.shots.length > 0);
+  assert.equal(d.sent, undefined);
+  assert.equal((await fetch(base + '/api/export')).status, 401, 'login required');
+});

@@ -28,6 +28,8 @@ All notable changes to PeptideTracker. Run `update` in the container to get the 
   notes, and clicks Update now (backup first, automatic rollback). Checks GitHub twice a day, or on demand.
 - Get started card for new accounts: add a medication, a vial, your first shot, and choose whether to track weight.
 - 📊 Dashboards in the ⚙ menu: enter your Grafana address (Admin → Backup & Grafana) and everyone gets a link to their own charts.
+- Docker image (amd64 + arm64) on ghcr.io with a ready-made docker-compose.yml.
+- Download all my data (Settings): one JSON file with everything you've entered.
 - About & updates page (⚙ menu): version, release notes, links, and the Grafana dashboard template for admins.
 - Weight unit (lb/kg) is set in My account; the menu button is a gear.
 - Installer tested on Proxmox VE: picks the Debian template for your CPU and cleans up if setup fails.

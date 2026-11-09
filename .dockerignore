@@ -1,0 +1,10 @@
+.git
+.github
+data
+docs
+test
+ct
+install
+scripts
+*.tar.gz
+*.sha256
