@@ -99,7 +99,8 @@ volumes:
   peptidetracker-data:
 ```
 
-`docker compose up -d`, then open `http://<host>:3080` and create your admin account right away.
+`docker compose up -d`, then open `http://<host>:3080` and create your admin account. It asks for a one-time
+**setup code**, which is in the log: `docker logs peptidetracker` (so nobody else can claim your install first).
 **Update:** `docker compose pull && docker compose up -d` (the app shows "Update available" with the
 release notes when there's a new version). Images are built for amd64 and arm64 (e.g. Raspberry Pi).
 Using a bind mount instead of a volume? Make the folder writable for user 1000: `chown 1000:1000 ./data`.

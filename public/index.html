@@ -26,6 +26,11 @@
     <input id="authUser" autocomplete="username" autocapitalize="none" spellcheck="false" required>
     <label for="authPass">Password</label>
     <input id="authPass" type="password" autocomplete="current-password" required>
+    <div id="codeWrap" hidden>
+      <label for="authCode">Setup code</label>
+      <input id="authCode" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="ABCD-EFGH">
+      <p class="muted small help">Shown in the container log: <code>docker logs peptidetracker</code></p>
+    </div>
     <div id="confirmWrap" hidden>
       <label for="authPass2">Confirm password</label>
       <input id="authPass2" type="password" autocomplete="new-password">
@@ -49,6 +54,11 @@
         <div class="full"><label for="rsPass">Password</label><input id="rsPass" type="password" autocomplete="new-password"></div>
       </div>
       <label class="check"><input type="checkbox" id="rsSsl"> Use SSL (needed for most cloud databases)</label>
+    <div id="rsCodeWrap" hidden>
+      <label for="rsCode">Setup code</label>
+      <input id="rsCode" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="ABCD-EFGH">
+      <p class="muted small help">Shown in the container log: <code>docker logs peptidetracker</code></p>
+    </div>
     <button class="primary" type="submit" id="restoreBtn">Restore</button>
     <button class="linkish" type="button" id="restoreBack">‹ Back to creating a new login</button>
     <div class="msg" id="restoreMsg" role="alert"></div>

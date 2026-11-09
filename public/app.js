@@ -132,6 +132,7 @@ async function refresh() {
 
 // ---------- login ----------
 let setupMode = false;
+let needSetupCode = false;
 let role = null;
 let firstName = '';
 const AUTH_CARDS = ['authForm', 'forgotForm', 'inviteForm', 'resetForm', 'linkErr', 'newPwForm', 'restoreForm'];
@@ -153,6 +154,7 @@ function showAuth(setup) {
   $('confirmWrap').hidden = !setup;
   $('forgotLink').hidden = setup;
   $('restoreLink').hidden = !setup;
+  $('codeWrap').hidden = $('rsCodeWrap').hidden = !(setup && needSetupCode);
   $('authPass').autocomplete = setup ? 'new-password' : 'current-password';
   $('authPass2').required = setup;
   $('authMsg').textContent = '';
@@ -161,6 +163,7 @@ function showAuth(setup) {
 async function whoAmI() {
   const who = await (await fetch('/api/auth')).json();
   user = who.user; role = who.role; firstName = who.firstName || '';
+  needSetupCode = !!who.setupCode;
   return who;
 }
 async function showApp() {
@@ -199,7 +202,7 @@ $('authForm').addEventListener('submit', async ev => {
   const u = $('authUser').value.trim(), p = $('authPass').value;
   if (setupMode && p !== $('authPass2').value) { $('authMsg').textContent = 'Passwords don’t match.'; return; }
   try {
-    const r = await api('POST', setupMode ? '/api/setup' : '/api/login', { user: u, password: p });
+    const r = await api('POST', setupMode ? '/api/setup' : '/api/login', { user: u, password: p, ...(setupMode && { setupCode: $('authCode').value }) });
     $('authPass').value = $('authPass2').value = '';
     await whoAmI();
     if (r.mustChange) showNewPassword();
@@ -2147,7 +2150,7 @@ $('restoreForm').addEventListener('submit', async ev => {
   $('restoreMsg').className = 'msg'; $('restoreMsg').textContent = 'Connecting and copying…';
   $('restoreBtn').disabled = true;
   try {
-    const r = await api('POST', '/api/setup/restore', dbForm('rs'));
+    const r = await api('POST', '/api/setup/restore', { ...dbForm('rs'), setupCode: $('rsCode').value });
     showAuth(false);
     $('authMsg').className = 'msg ok';
     $('authMsg').textContent = `Restored ${r.users} ${r.users === 1 ? 'person' : 'people'}, ${r.shots} shots and ${r.entries} weigh-ins. Sign in with your usual login.`;

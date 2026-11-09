@@ -116,3 +116,26 @@ test('Grafana address adds a per-person Dashboards link', async () => {
   await a.call('PUT', '/api/admin/grafana', { url: '' });
   assert.equal((await a.call('GET', '/api/data')).body.grafanaUrl, null);
 });
+
+test('Docker: first account needs the one-time setup code from the log', async () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pt-code-'));
+  const lines = [];
+  const app = createApp({ dataDir, publicDir: path.join(ROOT, 'public'), log: { log: m => lines.push(m), error() {} }, scheduler: false, requireSetupCode: true });
+  const server = http.createServer(app);
+  await new Promise(r => server.listen(0, '127.0.0.1', r));
+  servers.push({ server, dataDir });
+  await new Promise(r => setTimeout(r, 10));
+  const code = fs.readFileSync(path.join(dataDir, 'setup-code'), 'utf8').trim();
+  assert.match(code, /^[A-Z2-9]{4}-[A-Z2-9]{4}$/);
+  assert.ok(lines.join('\n').includes(code), 'code printed to the log');
+  const go = body => fetch(`http://127.0.0.1:${server.address().port}/api/setup`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const info = await (await fetch(`http://127.0.0.1:${server.address().port}/api/auth`)).json();
+  assert.equal(info.setupCode, true);
+  assert.equal((await go({ user: 'alex', password: 'correct horse' })).status, 403, 'no code');
+  assert.equal((await go({ user: 'alex', password: 'correct horse', setupCode: 'AAAA-AAAA' })).status, 403, 'wrong code');
+  // Even "through a proxy" the code is what counts (Docker NAT makes addresses unreliable)
+  const ok = await fetch(`http://127.0.0.1:${server.address().port}/api/setup`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': '203.0.113.9' }, body: JSON.stringify({ user: 'alex', password: 'correct horse', setupCode: code.toLowerCase() }) });
+  assert.equal(ok.status, 200);
+  assert.equal(fs.existsSync(path.join(dataDir, 'setup-code')), false, 'code removed once used');
+  assert.equal((await go({ user: 'evil', password: 'correct horse', setupCode: code })).status, 403);
+});

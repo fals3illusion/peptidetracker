@@ -20,5 +20,6 @@ Only the latest release gets fixes. Keep your install up to date — admins see
 ## Good practice for your install
 
 - Put it behind HTTPS (a reverse proxy) before opening it to the internet.
-- Create your admin account right after installing; first-time setup only works from your local network.
+- Create your admin account right after installing. First-time setup only works from your local network
+  (Proxmox/Debian), or with the one-time setup code from `docker logs peptidetracker` (Docker).
 - Use a read-only database user for Grafana (the app shows the SQL).
