@@ -87,4 +87,6 @@ jobs:
         run: |
           # Re-publishing the same version (scripts/release.sh X.Y.Z --replace) replaces its release.
           gh release delete "$GITHUB_REF_NAME" --yes 2>/dev/null || true
+          # One-time cleanup: v1.0.1 was published by mistake and rolled back into v1.0.0.
+          [ "$GITHUB_REF_NAME" = v1.0.0 ] && { gh release delete v1.0.1 --yes --cleanup-tag 2>/dev/null || true; }
           gh release create "$GITHUB_REF_NAME" peptidetracker.tar.gz peptidetracker.tar.gz.sha256 --title "PeptideTracker $GITHUB_REF_NAME" --notes-file notes.md --latest
