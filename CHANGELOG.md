@@ -4,10 +4,6 @@ All notable changes to PeptideTracker. Run `update` in the container to get the 
 
 ## [Unreleased]
 
-### Changed
-- Admin → Users → Reset password opens a small screen where you can type your own temporary password
-  (or use a random one), optionally email it, and get a ready-to-text message. They choose their own at next sign-in.
-
 ## [1.0.0] - 2026-11-08
 
 ### First public release
@@ -28,6 +24,7 @@ All notable changes to PeptideTracker. Run `update` in the container to get the 
 - Admin → Backup & Grafana: connect a PostgreSQL backup from the app (with a connection test), copy-paste setup SQL, and download the Grafana dashboard.
 - Restore a new install from a PostgreSQL backup on the setup screen.
 - Admin setup checklist.
+- Admin password reset: choose your own temporary password (or a random one) and get a ready-to-text message.
 - Updates from the app: the admin sees “Update vX available” at the bottom of the page, opens the release
   notes, and clicks Update now (backup first, automatic rollback). Checks GitHub twice a day, or on demand.
 - Get started card for new accounts: add a medication, a vial, your first shot, and choose whether to track weight.
