@@ -1883,6 +1883,34 @@ function randomPassword() {
   return [...bytes].map(b => chars[b % chars.length]).join('');
 }
 let usersCache = [];
+// Admin: give someone a temporary password (typed or random); they choose their own at next sign-in.
+let resetTarget = null;
+function openReset_(u) {
+  resetTarget = u;
+  $('arResetTitle').textContent = `Reset password for ${fullName(u) || u.user}`;
+  $('arResetPass').value = randomPassword();
+  const canEmail = !!u.email && state.mailReady;
+  $('arResetEmailWrap').hidden = !canEmail;
+  $('arResetEmail').checked = false;
+  $('arResetEmailText').textContent = canEmail ? `Also email it to ${u.email}` : '';
+  $('arResetMsg').textContent = '';
+  $('arResetDialog').showModal();
+  $('arResetPass').select();
+}
+$('arResetGen').addEventListener('click', () => { $('arResetPass').value = randomPassword(); });
+$('arResetCancel').addEventListener('click', () => $('arResetDialog').close());
+$('arResetForm').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const pass = $('arResetPass').value;
+  if (pass.length < 8) { $('arResetMsg').textContent = 'Use at least 8 characters.'; return; }
+  try {
+    const u = resetTarget;
+    const r = await api('POST', `/api/users/${encodeURIComponent(u.id)}/password`, { password: pass, sendEmail: !$('arResetEmailWrap').hidden && $('arResetEmail').checked });
+    $('arResetDialog').close();
+    await renderUsers();
+    showSent(u.user, pass, r, u.firstName, true);
+  } catch (e) { $('arResetMsg').textContent = e.message; }
+});
 const fullName = u => [u.firstName, u.lastName].filter(Boolean).join(' ');
 async function renderUsers() {
   const [users, invites] = await Promise.all([api('GET', '/api/users'), api('GET', '/api/invites')]);
@@ -1929,9 +1957,9 @@ $('usersMsg').addEventListener('click', async ev => {
   }
   if (ev.target.closest('[data-share-msg]')) navigator.share({ text }).catch(() => {});
 });
-function showSent(name, pass, r, firstName = '') {
+function showSent(name, pass, r, firstName = '', reset = false) {
   const hi = firstName ? `Hi ${firstName}! ` : 'Hi! ';
-  const msg = `${hi}I set you up on PeptideTracker.\n\nSign in here: ${r.loginLink || location.origin}\nUsername: ${name}\nTemporary password: ${pass}\n\nYou’ll pick your own password the first time you sign in.`;
+  const msg = `${hi}${reset ? 'I reset your PeptideTracker password.' : 'I set you up on PeptideTracker.'}\n\nSign in here: ${r.loginLink || location.origin}\nUsername: ${name}\nTemporary password: ${pass}\n\nYou’ll pick your own password the first time you sign in.`;
   usersMsg((r.emailed ? `<div class="new-pass">Emailed <b>${esc(name)}</b> their login at <b>${esc(r.email)}</b>.</div>` : '')
     + shareBox(r.emailed ? 'Or text them this:' : `Send <b>${esc(name)}</b> their login:`, msg)
     + (r.emailError ? `<div class="msg">Email not sent: ${esc(r.emailError)}</div>` : ''), true);
@@ -1994,14 +2022,7 @@ async function onUsersClick(ev) {
   usersMsg('');
   try {
     if (btn.dataset.edit) return openAccount(u, u.user === user);
-    if (btn.dataset.reset) {
-      const pass = randomPassword();
-      if (!confirm(`Reset ${u.user}'s password? They'll be signed out and must pick a new one.`)) return;
-      const sendEmail = !!u.email && state.mailReady && confirm(`Email the new temporary password to ${u.email}?`);
-      const r = await api('POST', `/api/users/${encodeURIComponent(u.id)}/password`, { password: pass, sendEmail });
-      await renderUsers();
-      return showSent(u.user, pass, r, u.firstName);
-    }
+    if (btn.dataset.reset) return openReset_(u);
     if (btn.dataset.remove) {
       if (!confirm(`Remove ${fullName(u) || u.user}? This permanently deletes their weigh-ins, shots and vials.`)) return;
       await api('DELETE', `/api/users/${encodeURIComponent(u.id)}`);

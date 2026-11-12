@@ -921,6 +921,26 @@
   </form>
 </dialog>
 
+<!-- Admin: reset someone's password -->
+<dialog id="arResetDialog">
+  <form id="arResetForm" method="dialog">
+    <h2 id="arResetTitle">Reset password</h2>
+    <label for="arResetPass">Temporary password</label>
+    <div class="pw-row">
+      <input id="arResetPass" autocomplete="off" spellcheck="false" minlength="8" required>
+      <button type="button" class="act" id="arResetGen" title="Make a random password">↻</button>
+    </div>
+    <p class="muted small help">Type your own or use the random one (at least 8 characters). They’ll be signed out, and asked to choose their own password the next time they sign in.</p>
+    <label class="check" id="arResetEmailWrap" hidden><input type="checkbox" id="arResetEmail"> <span id="arResetEmailText">Also email it to them</span></label>
+    <div class="msg" id="arResetMsg" role="alert"></div>
+    <div class="dialog-actions">
+      <span class="spacer"></span>
+      <button type="button" id="arResetCancel">Cancel</button>
+      <button type="submit" class="primary">Reset password</button>
+    </div>
+  </form>
+</dialog>
+
 <!-- Change password -->
 <dialog id="pwDialog">
   <form id="pwForm" method="dialog">

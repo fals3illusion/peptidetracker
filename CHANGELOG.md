@@ -4,6 +4,10 @@ All notable changes to PeptideTracker. Run `update` in the container to get the 
 
 ## [Unreleased]
 
+### Changed
+- Admin → Users → Reset password opens a small screen where you can type your own temporary password
+  (or use a random one), optionally email it, and get a ready-to-text message. They choose their own at next sign-in.
+
 ## [1.0.0] - 2026-11-08
 
 ### First public release
