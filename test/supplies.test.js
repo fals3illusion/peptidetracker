@@ -91,3 +91,15 @@ test('vial correction and near-full last dose', () => {
   assert.equal(usage({ ...v, adjustMg: -50 }, sh).leftMg, 0, 'never negative');
   assert.equal(usage({ ...v, adjustMg: 50 }, sh).leftMg, 10, 'never more than the vial held');
 });
+
+test('units round to the nearest syringe mark', async () => {
+  const { roundUnits } = await import('../public/supplies.js');
+  assert.equal(roundUnits(14.58), 15);
+  assert.equal(roundUnits(14.49), 14);
+  assert.equal(roundUnits(14.5), 15);
+  assert.equal(roundUnits(14.58, 0.5), 14.5);
+  assert.equal(roundUnits(14.8, 0.5), 15);
+  assert.equal(roundUnits(15.2, 2), 16);
+  assert.equal(roundUnits(40), 40);
+  assert.equal(roundUnits(null), null);
+});

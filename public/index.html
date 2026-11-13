@@ -811,6 +811,13 @@
     <div id="shotSettings">
 
     <button type="button" class="med-link" id="setMedsLink">Medications — shot day, dose plan, schedules, injection sites, vial defaults ›</button>
+    <label for="setSyringe">Syringe markings</label>
+    <select id="setSyringe">
+      <option value="1">Every 1 unit (most 0.5 mL and 1 mL syringes)</option>
+      <option value="0.5">Every ½ unit (0.3 mL syringes)</option>
+      <option value="2">Every 2 units (some 1 mL syringes)</option>
+    </select>
+    <p class="muted small help">Units to draw are rounded to the nearest mark, and the dose shown is what you’ll actually get.</p>
     <label for="setRefill">Refill warning when doses left are at or below</label>
     <input id="setRefill" type="number" inputmode="numeric" min="0" max="20" step="1" required>
     <p class="muted small help">Counts doses left in each open vial or box at your current dose.</p>

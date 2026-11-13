@@ -1,5 +1,5 @@
 import { project, requiredPace } from './projection.js';
-import { takenFrom, concentration, mgToUnits, unitsToMg, usage, shotCost, totalSpent, shotAt, doseChanges, nextShotDue, SITES, suggestSite, shotStatus, refillAlerts } from './supplies.js';
+import { takenFrom, concentration, mgToUnits, roundUnits, unitsToMg, usage, shotCost, totalSpent, shotAt, doseChanges, nextShotDue, SITES, suggestSite, shotStatus, refillAlerts } from './supplies.js';
 import { movingAverage, progress } from './progress.js';
 import { recommendDose, dosePlan } from './titration.js';
 import { protocolFor, mainShots, shotsOf, protocolDose, protocolStatus, describeProtocol, WEEKDAYS_SHORT, combineShots } from './protocols.js';
@@ -20,6 +20,9 @@ let showAllShots = false;
 
 // ---------- formatting (weights are stored in lb) ----------
 const unit = () => state.settings.unit;
+// Units you can actually draw: rounded to your syringe's markings (Settings → Syringe markings).
+const syrStep = () => state.settings.syringeStep || 1;
+const drawU = u => roundUnits(u, syrStep());
 const toDisp = lb => unit() === 'kg' ? lb / LB_PER_KG : lb;
 const fromDisp = v => unit() === 'kg' ? v * LB_PER_KG : v;
 const fmtW = lb => `${toDisp(lb).toFixed(1)} ${unit()}`;
@@ -610,10 +613,10 @@ function renderPlan() {
     const when = st.status === 'done' || st.status === 'current'
       ? `${fmtShort(st.startAt)} · ${st.shots} shot${st.shots === 1 ? '' : 's'}${st.status === 'current' && st.remaining ? ` (${st.remaining} to go)` : ''}`
       : `from ${fmtDay(st.startAt)}`;
-    const units = conc ? `${trim(mgToUnits(st.doseMg, conc))} u` : '';
+    const units = conc ? `${trim(drawU(mgToUnits(st.doseMg, conc)))} u` : '';
     return `<tr class="${st.status}"><td>${trim(st.doseMg)} mg${st.doseMg >= plan.maxDose ? ' <span class="muted small">(max)</span>' : ''}</td><td>${when}</td><td class="num">${units}</td><td class="num"><span class="tag">${tag[st.status]}</span></td></tr>`;
   }).join('');
-  $('planView').innerHTML = `<div class="plan-note">Next shot: <b>${trim(rec.doseMg)} mg</b>${conc ? ` = ${trim(mgToUnits(rec.doseMg, conc))} units` : ''}. ${esc(rec.reason)}.</div>
+  $('planView').innerHTML = `<div class="plan-note">Next shot: <b>${trim(rec.doseMg)} mg</b>${conc ? ` = ${trim(drawU(mgToUnits(rec.doseMg, conc)))} units` : ''}. ${esc(rec.reason)}.</div>
     <table class="plan-table"><tbody>${rows}</tbody></table>
     <p class="muted small help">Units are for your current vial${conc ? ` (${trim(conc)} mg/mL)` : ''}. Future dates assume weekly shots. Step up ${trim(plan.step)} mg after every ${plan.every} shots, up to ${trim(plan.maxDose)} mg.</p>`;
 }
@@ -635,7 +638,7 @@ function protoDoseText(p) {
   let txt;
   if (mg == null) txt = fmtAmount(rec.amount, p.unit);
   else if (!conc) txt = fmtMg(mg);
-  else txt = `${trim(mgToUnits(mg, conc))} units (${fmtMg(mg)})`;
+  else { const u = drawU(mgToUnits(mg, conc)); txt = `${trim(u)} units (${fmtMg(unitsToMg(u, conc))})`; }
   const stronger = p.unit === 'units' && concDiffers(conc, p.refConc);
   if (stronger) txt += ` — converted for this vial’s strength`;
   return { rec, txt, mg, conc };
@@ -738,7 +741,7 @@ function renderShots() {
     left = [left, takenText(s)].filter(Boolean).join('<br>');
     const lastFrom = [...shots].reverse().find(x => x.supplyId === s.id);
     const chips = [];
-    if (lastFrom && conc) chips.push(`${trim(lastFrom.doseMg)} mg = <b>${trim(mgToUnits(lastFrom.doseMg, conc))} units</b>`);
+    if (lastFrom && conc) chips.push(`${trim(lastFrom.doseMg)} mg = <b>${trim(drawU(mgToUnits(lastFrom.doseMg, conc)))} units</b>`);
     const c = lastFrom ? shotCost(lastFrom, s) : null;
     if (c != null) chips.push(`<b>${money(c)}</b> per ${trim(lastFrom.doseMg)} mg shot`);
     const frac = u.fraction ?? null;
@@ -881,7 +884,7 @@ function updateSupplyCalc() {
   if (conc) {
     out.push(`<div class="line hl"><span>Strength</span><b>${trim(conc)} mg/mL</b></div>`);
     const doses = [2.5, 5, 7.5, 10, 12.5, 15].filter(d => d <= s.mg);
-    if (!protocolFor(protocols(), $('sName').value)) out.push(`<div class="muted small">Units to draw (U-100 syringe):</div><div class="units-table">${doses.map(d => `<span>${d} mg = <b>${trim(mgToUnits(d, conc))}</b></span>`).join('')}</div>`);
+    if (!protocolFor(protocols(), $('sName').value)) out.push(`<div class="muted small">Units to draw (U-100 syringe):</div><div class="units-table">${doses.map(d => `<span>${d} mg = <b>${trim(drawU(mgToUnits(d, conc)))}</b></span>`).join('')}</div>`);
     if (s.price) out.push(`<div class="line"><span>Cost per mg</span><b>${money(s.price / s.mg)}</b></div>`);
   } else if (kind === 'pack' && s.count && s.price) {
     out.push(`<div class="line hl"><span>Cost per dose</span><b>${money(s.price / s.count)}</b></div>`);
@@ -956,7 +959,7 @@ function updateSched() {
     if (doseMgRef != null) lines.push(`<div class="line"><span>Each dose</span><b>${fmtMg(doseMgRef)}</b></div>`);
     if (conc) {
       const doseMg = doseMgRef ?? (p.unit === 'units' ? unitsToMg(p.amount, conc) : p.amount);
-      lines.push(`<div class="line"><span>From a ${trim(conc)} mg/mL vial</span><b>${trim(mgToUnits(doseMg, conc))} units</b></div>`);
+      lines.push(`<div class="line"><span>From a ${trim(conc)} mg/mL vial</span><b>${trim(drawU(mgToUnits(doseMg, conc)))} units</b></div>`);
       const vialMg = numOrNull('mdVialMg') || vialToUse(name)?.mg;
       if (vialMg && doseMg > 0) lines.push(`<div class="line"><span>Doses per vial (at this dose)</span><b>${Math.floor(vialMg / doseMg + 1e-9)}</b></div>`);
     }
@@ -1185,7 +1188,7 @@ function setSplit(on, mg2 = null, vialId = null) {
     fillSplitVials(vialId);
     const conc2 = concentration(shotSupply2());
     $('hUnits2Wrap').hidden = !conc2;
-    if (mg2 != null) { $('hMg2').value = trimMg(mg2); $('hUnits2').value = conc2 ? trim(mgToUnits(mg2, conc2)) : ''; }
+    if (mg2 != null) { $('hMg2').value = trimMg(mg2); $('hUnits2').value = conc2 ? trim(drawU(mgToUnits(mg2, conc2))) : ''; }
   } else { $('hMg2').value = ''; $('hUnits2').value = ''; }
   $('splitAdd').hidden = on || !otherVials().length;
 }
@@ -1203,7 +1206,7 @@ function autoSplit(totalMg) {
     if (left > 1e-6) {
       const c = concentration(sup);
       $('hMg').value = trimMg(left);
-      if (c) $('hUnits').value = trim(mgToUnits(left, c));
+      if (c) $('hUnits').value = trim(drawU(mgToUnits(left, c)));
     }
     return left > 1e-6 ? { short: totalMg - left } : null;
   }
@@ -1215,11 +1218,11 @@ function autoSplit(totalMg) {
   const conc = concentration(sup);
   if (totalMg - left < totalMg * 0.02) {
     $('hMg').value = trimMg(left);
-    if (conc) $('hUnits').value = trim(mgToUnits(left, conc));
+    if (conc) $('hUnits').value = trim(drawU(mgToUnits(left, conc)));
     return null;
   }
   $('hMg').value = trimMg(left);
-  if (conc) $('hUnits').value = trim(mgToUnits(left, conc));
+  if (conc) $('hUnits').value = trim(drawU(mgToUnits(left, conc)));
   setSplit(true, Math.round((totalMg - left) * 10000) / 10000, next.id);
   part2Touched = false;
   return { left, rest: totalMg - left, next };
@@ -1233,7 +1236,7 @@ $('hSupply2').addEventListener('change', () => {
   $('hUnits2Wrap').hidden = !conc2;
   if (!part2Touched && restNeeded() != null) $('hMg2').value = trimMg(restNeeded());
   const mg2 = numOrNull('hMg2');
-  $('hUnits2').value = conc2 && mg2 != null ? trim(mgToUnits(mg2, conc2)) : '';
+  $('hUnits2').value = conc2 && mg2 != null ? trim(drawU(mgToUnits(mg2, conc2))) : '';
   updateShotForm('none');
 });
 $('hUnits2').addEventListener('input', () => {
@@ -1245,7 +1248,7 @@ $('hUnits2').addEventListener('input', () => {
 $('hMg2').addEventListener('input', () => {
   part2Touched = true;
   const conc2 = concentration(shotSupply2()), mg = numOrNull('hMg2');
-  if (conc2) $('hUnits2').value = mg != null ? trim(mgToUnits(mg, conc2)) : '';
+  if (conc2) $('hUnits2').value = mg != null ? trim(drawU(mgToUnits(mg, conc2))) : '';
   updateShotForm('none');
 });
 const splitNote = r => r && r.left != null
@@ -1268,11 +1271,11 @@ function applyRecommendation() {
     const targetMg = protoTargetMg(p, rec.amount, conc);
     if (targetMg != null) {
       $('hMg').value = trimMg(targetMg);
-      if (conc) $('hUnits').value = trim(mgToUnits(targetMg, conc));
+      if (conc) $('hUnits').value = trim(drawU(mgToUnits(targetMg, conc)));
     }
     doseTarget = targetMg;
     const converted = p.unit === 'units' && concDiffers(conc, p.refConc)
-      ? `<span class="warn" style="color:var(--text-primary)">Your schedule is ${esc(fmtAmount(rec.amount, 'units'))} on a ${trim(p.refConc)} mg/mL vial = ${esc(fmtMg(targetMg))}. This vial is ${trim(conc)} mg/mL, so draw <b>${trim(mgToUnits(targetMg, conc))} units</b> for the same dose.</span>`
+      ? `<span class="warn" style="color:var(--text-primary)">Your schedule is ${esc(fmtAmount(rec.amount, 'units'))} on a ${trim(p.refConc)} mg/mL vial = ${esc(fmtMg(targetMg))}. This vial is ${trim(conc)} mg/mL, so draw <b>${trim(drawU(mgToUnits(targetMg, conc)))} units</b> for the same dose.</span>`
       : '';
     const split = autoSplit(doseTarget);
     if (split?.switched) return applyRecommendation();
@@ -1288,7 +1291,7 @@ function applyRecommendation() {
   if (planOn() && !protocolFor(protocols(), name)) {
     const rec = recommendDose(mainList().filter(x => !editingParts.some(e => e.id === x.id)), state.settings.plan, Date.now());
     $('hMg').value = trim(rec.doseMg);
-    if (conc) $('hUnits').value = trim(mgToUnits(rec.doseMg, conc));
+    if (conc) $('hUnits').value = trim(drawU(mgToUnits(rec.doseMg, conc)));
     doseTarget = rec.doseMg;
     const split = autoSplit(rec.doseMg);
     if (split?.switched) return applyRecommendation();
@@ -1327,13 +1330,13 @@ function makeUpHelp(sup, mg1) {
     for (const v of otherVials().filter(v => !v.done)) {
       const left = leftIn(v) ?? 0, c = concentration(v);
       if (left < short - 1e-6) continue;
-      opts.push(`<div class="makeup-opt"><span>From ${esc(supplyLabel(v))}: <b>${c ? `${trim(mgToUnits(short, c))} units` : esc(fmtMg(short))}</b></span><button type="button" class="act" data-makeup-vial="${esc(v.id)}">Use</button></div>`);
+      opts.push(`<div class="makeup-opt"><span>From ${esc(supplyLabel(v))}: <b>${c ? `${trim(drawU(mgToUnits(short, c)))} units` : esc(fmtMg(short))}</b></span><button type="button" class="act" data-makeup-vial="${esc(v.id)}">Use</button></div>`);
     }
   }
   if (!opts.length) {
     const water = sup.waterMl || 3;
     for (const x of invItems('peptide').filter(x => x.qty > 0 && sameMed(x.name, sup.name) && x.mg > 0)) {
-      const units = mgToUnits(short, x.mg / water);
+      const units = drawU(mgToUnits(short, x.mg / water));
       opts.push(`<div class="makeup-opt"><span>Mix a new ${esc(x.name)} ${trim(x.mg)} mg vial (${esc(x.code)}, ${x.qty} in stock): with ${trim(water)} mL water, draw <b>${trim(units)} units</b></span><button type="button" class="act" data-makeup-mix="${esc(x.id)}" data-water="${water}">Mix it</button></div>`);
     }
   }
@@ -1369,15 +1372,16 @@ function updateShotForm(changed) {
     $('hMg').value = u != null ? trimMg(unitsToMg(u, conc)) : '';
   } else if (conc && (changed === 'mg' || changed === 'supply')) {
     const mg = numOrNull('hMg');
-    $('hUnits').value = mg != null ? trim(mgToUnits(mg, conc)) : '';
+    $('hUnits').value = mg != null ? trim(drawU(mgToUnits(mg, conc))) : '';
   }
   // Typing the amount drawn from vial 1 updates vial 2 to the rest of the dose.
   if (splitOn() && !part2Touched && doseTarget && (changed === 'units' || changed === 'mg')) {
     const rest = restNeeded(), conc2 = concentration(shotSupply2());
     $('hMg2').value = trimMg(rest);
-    $('hUnits2').value = conc2 ? trim(mgToUnits(rest, conc2)) : '';
+    $('hUnits2').value = conc2 ? trim(drawU(mgToUnits(rest, conc2))) : '';
   }
-  const mg = numOrNull('hMg');
+  // From a mixed vial, what's drawn (units, rounded to the syringe marks) is the dose.
+  const mg = conc && numOrNull('hUnits') != null ? unitsToMg(numOrNull('hUnits'), conc) : numOrNull('hMg');
   const out = [];
   if (sup) {
     // What's left after this shot (excluding the shot being edited).
@@ -1403,6 +1407,10 @@ function updateShotForm(changed) {
     out.push(`<div class="line hl"><span>Total dose</span><b>${fmtMg((mg || 0) + (mg2 || 0))}${numOrNull('hUnits') != null && numOrNull('hUnits2') != null ? ` · ${trim(numOrNull('hUnits') + numOrNull('hUnits2'))} units in the syringe` : ''}</b></div>`);
   }
   out.push(makeUpHelp(sup, mg));
+  { const u = numOrNull('hUnits'), m = numOrNull('hMg');
+    if (conc && u != null && m != null && Math.abs(unitsToMg(u, conc) - m) > 0.0005) {
+      out.unshift(`<div class="line"><span>Rounded to the nearest syringe mark</span><b>${trim(u)} units = ${esc(fmtMg(unitsToMg(u, conc)))}</b></div>`);
+    } }
   $('shotCalc').innerHTML = out.join('') || `<span class="muted">${sup ? 'Enter the dose.' : 'Not tracked against a vial.'}</span>`;
 }
 
@@ -1470,7 +1478,8 @@ async function saveShot() {
     t,
     supplyId: sup?.id ?? null,
     name: sup ? sup.name : $('hName').value.trim(),
-    doseMg: numOrNull('hMg'),
+    // From a mixed vial, the units actually drawn decide the dose (after rounding to the syringe marks).
+    doseMg: concentration(sup) && numOrNull('hUnits') != null ? Math.round(unitsToMg(numOrNull('hUnits'), concentration(sup)) * 10000) / 10000 : numOrNull('hMg'),
     units: concentration(sup) ? numOrNull('hUnits') : null,
     site: document.querySelector('input[name="hSite"]:checked')?.value ?? null,
     note: $('hNote').value.trim(),
@@ -1482,7 +1491,7 @@ async function saveShot() {
   // (crypto.randomUUID only exists over HTTPS; this works on the plain-HTTP LAN address too)
   const newId = () => [...crypto.getRandomValues(new Uint8Array(12))].map(b => b.toString(16).padStart(2, '0')).join('');
   const groupId = sup2 ? (editingParts.find(x => x.groupId)?.groupId || newId()) : null;
-  const part2 = sup2 ? { ...body, supplyId: sup2.id, name: sup2.name, doseMg: numOrNull('hMg2'), units: concentration(sup2) ? numOrNull('hUnits2') : null, groupId } : null;
+  const part2 = sup2 ? { ...body, supplyId: sup2.id, name: sup2.name, doseMg: concentration(sup2) && numOrNull('hUnits2') != null ? Math.round(unitsToMg(numOrNull('hUnits2'), concentration(sup2)) * 10000) / 10000 : numOrNull('hMg2'), units: concentration(sup2) ? numOrNull('hUnits2') : null, groupId } : null;
   try {
     const created = [];
     const [old1, old2] = editingParts;
@@ -1585,7 +1594,7 @@ function renderBanners() {
     if (planOn()) {
       const rec = recommendDose(main, settings.plan, Date.now());
       const conc = currentConc();
-      const dose = `${trim(rec.doseMg)} mg${conc ? ` (${trim(mgToUnits(rec.doseMg, conc))} units)` : ''}`;
+      const dose = `${trim(rec.doseMg)} mg${conc ? ` (${trim(drawU(mgToUnits(rec.doseMg, conc)))} units)` : ''}`;
       next = (rec.stepUp ? `<span class="stepup">Dose increase today: ${dose}</span> — up from ${trim(rec.from)} mg` : `Dose: <b>${dose}</b>`) + ` · ${next}`;
     }
     if (st.state === 'due-today') {
@@ -1701,6 +1710,7 @@ function openSettings() {
   document.querySelector('.menu').open = false;
   const st = state.settings;
   $('setRefill').value = st.refillAt ?? 3;
+  $('setSyringe').value = String(st.syringeStep || 1);
   $('setFt').value = st.heightIn ? Math.floor(st.heightIn / 12) : '';
   $('setIn').value = st.heightIn ? trim(st.heightIn % 12) : '';
   $('setShowShots').checked = st.showShots !== false;
@@ -1857,6 +1867,7 @@ $('settingsForm').addEventListener('submit', async ev => {
   try {
     await api('PUT', '/api/settings', {
       refillAt: Number($('setRefill').value),
+      syringeStep: Number($('setSyringe').value),
       heightIn,
       showShots: $('setShowShots').checked,
       trackWeight: $('setTrackWeight').checked,
@@ -2299,7 +2310,7 @@ function renderNext() {
     const rec = planOn() ? recommendDose(main, state.settings.plan, now) : null;
     const mg = rec ? rec.doseMg : last.doseMg;
     const conc = currentConc();
-    rows.push({ name: last.name, due, state: s_, dose: `${fmtMg(mg)}${conc ? ` (${trim(mgToUnits(mg, conc))} units)` : ''}${rec?.stepUp ? ' · dose increase' : ''}`, med: null });
+    rows.push({ name: last.name, due, state: s_, dose: `${fmtMg(mg)}${conc ? ` (${trim(drawU(mgToUnits(mg, conc)))} units)` : ''}${rec?.stepUp ? ' · dose increase' : ''}`, med: null });
   }
   // Everything on its own schedule
   for (const p of protocols()) {

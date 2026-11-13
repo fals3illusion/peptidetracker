@@ -14,6 +14,12 @@ export function concentration(supply) {
   return supply && supply.kind === 'vial' && pos(supply.mg) && pos(supply.waterMl) ? supply.mg / supply.waterMl : null;
 }
 export const mgToUnits = (mg, conc) => (pos(conc) ? (mg / conc) * 100 : null);
+// Syringes only have marks every 1 unit (or ½ / 2): round a calculated amount to the nearest mark.
+export function roundUnits(u, step = 1) {
+  if (u == null || !Number.isFinite(u)) return u;
+  const s = step > 0 ? step : 1;
+  return Math.round(Math.round(u / s + 1e-9) * s * 100) / 100;
+}
 export const unitsToMg = (units, conc) => (pos(conc) ? (units / 100) * conc : null);
 
 // What's been used and what's left in a supply.

@@ -4,6 +4,10 @@ All notable changes to PeptideTracker. Run `update` in the container to get the 
 
 ## [Unreleased]
 
+### Changed
+- Units to draw are rounded to your syringe's markings (Settings → Syringe markings: 1, ½ or 2 units), and the dose
+  shown and logged is what you actually draw — e.g. 14.58 units becomes 15 units (1.71 mg).
+
 ## [1.0.0] - 2026-11-08
 
 ### First public release

@@ -1,7 +1,7 @@
 // Planning helpers shared by the page and the server's scheduled jobs:
 // what's due today, use-by dates for mixed vials, when to reorder, and how each dose worked.
 // `data` is one person's profile: { entries, supplies, shots, inventory, settings }.
-import { concentration, unitsToMg, mgToUnits, usage, shotStatus, nextShotDue, doseChanges } from './supplies.js';
+import { concentration, unitsToMg, mgToUnits, roundUnits, usage, shotStatus, nextShotDue, doseChanges } from './supplies.js';
 import { protocolFor, mainShots, combineShots, shotsOf, protocolDose, protocolStatus } from './protocols.js';
 import { recommendDose } from './titration.js';
 import { fitLine } from './projection.js';
@@ -51,13 +51,14 @@ export function dosesPerWeek(data, p, now = Date.now()) {
 // Returns [{ key, name, text }]; key is 'main' or the medication name in lower case.
 export function dueToday(data, now = Date.now()) {
   const out = [];
+  const draw = u => roundUnits(u, data.settings?.syringeStep || 1); // nearest syringe mark
   const main = mainList(data);
   if (main.length) {
     const st = shotStatus(main, data.settings?.shotDay ?? null, now);
     if (st.state === 'due-today' || st.state === 'overdue') {
       const d = mainDose(data, now);
       const v = vialInUse(data, d.name), c = concentration(v);
-      out.push({ key: 'main', name: d.name, overdue: st.state === 'overdue', text: `${fmtMg(d.mg)}${c ? ` (${r2(mgToUnits(d.mg, c))} units)` : ''}` });
+      out.push({ key: 'main', name: d.name, overdue: st.state === 'overdue', text: `${fmtMg(d.mg)}${c ? ` (${r2(draw(mgToUnits(d.mg, c)))} units)` : ''}` });
     }
   }
   for (const p of protocols(data)) {
@@ -66,7 +67,7 @@ export function dueToday(data, now = Date.now()) {
     if (st.state !== 'due-today' && st.state !== 'overdue') continue;
     const d = protocolDoseMg(data, p);
     const c = concentration(vialInUse(data, p.name));
-    const text = d.mg != null && c ? `${r2(mgToUnits(d.mg, c))} units (${fmtMg(d.mg)})` : p.unit === 'units' ? `${r2(d.amount)} units` : fmtMg(d.amount);
+    const text = d.mg != null && c ? `${r2(draw(mgToUnits(d.mg, c)))} units (${fmtMg(unitsToMg(draw(mgToUnits(d.mg, c)), c))})` : p.unit === 'units' ? `${r2(d.amount)} units` : fmtMg(d.amount);
     out.push({ key: lc(p.name), name: p.name, overdue: st.state === 'overdue', text });
   }
   return out;

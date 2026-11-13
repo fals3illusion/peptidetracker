@@ -87,3 +87,14 @@ test('dose results: weight change per dose', () => {
   assert.ok(r[0].lbPerWeek < -2.5 && r[0].lbPerWeek > -3.5);
   assert.equal(r[1].current, true);
 });
+
+test('due-today text rounds units to the syringe marks and shows the real dose', () => {
+  const data = base();
+  // A 12 mg vial in 3 mL (4 mg/mL): the 50-unit schedule set on a 3.33 mg/mL vial = 1.667 mg = 41.67 units → 42 units = 1.68 mg
+  data.supplies.push({ id: 'm2', name: 'MOTS-C', kind: 'vial', mg: 12, waterMl: 3, opened: d(11, 10) });
+  data.supplies.find(v => v.id === 'm').done = true;
+  const mots = dueToday(data, d(11, 12, 7)).find(x => x.key === 'mots-c');
+  assert.match(mots.text, /^42 units \(1\.68 mg\)$/);
+  data.settings.syringeStep = 0.5;
+  assert.match(dueToday(data, d(11, 12, 7)).find(x => x.key === 'mots-c').text, /^41\.5 units \(1\.66 mg\)$/);
+});
