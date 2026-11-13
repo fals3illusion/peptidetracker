@@ -4,10 +4,6 @@ All notable changes to PeptideTracker. Run `update` in the container to get the 
 
 ## [Unreleased]
 
-### Changed
-- Units to draw are rounded to your syringe's markings (Settings → Syringe markings: 1, ½ or 2 units), and the dose
-  shown and logged is what you actually draw — e.g. 14.58 units becomes 15 units (1.71 mg).
-
 ## [1.0.0] - 2026-11-08
 
 ### First public release
@@ -28,6 +24,7 @@ All notable changes to PeptideTracker. Run `update` in the container to get the 
 - Admin → Backup & Grafana: connect a PostgreSQL backup from the app (with a connection test), copy-paste setup SQL, and download the Grafana dashboard.
 - Restore a new install from a PostgreSQL backup on the setup screen.
 - Admin setup checklist.
+- Units to draw are rounded to your syringe's markings (1, ½ or 2 units), and the dose shown and logged is what you actually draw.
 - Admin password reset: choose your own temporary password (or a random one) and get a ready-to-text message.
 - Updates from the app: the admin sees “Update vX available” at the bottom of the page, opens the release
   notes, and clicks Update now (backup first, automatic rollback). Checks GitHub twice a day, or on demand.
