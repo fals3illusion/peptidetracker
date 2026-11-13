@@ -88,7 +88,7 @@ test('morning notification: only on shot day, after the set time, once', async (
   await app.tick(at(11, 12, 7, 31));
   assert.equal(pushes.length, 1);
   assert.equal(pushes[0].title, 'Shot day');
-  assert.match(pushes[0].body, /^Tirzepatide: 10 mg/);
+  assert.match(pushes[0].body, /^Tirzepatide: 40 units \(10 mg\)/);
   await app.tick(at(11, 12, 7, 32));
   assert.equal(pushes.length, 1, 'only once a day');
 });

@@ -38,7 +38,7 @@ test('dueToday: Thursday main shot + MOTS-C every 3 days', () => {
   const data = base();
   const due = dueToday(data, d(11, 12, 7)); // Thu Nov 12; MOTS-C last Nov 4 -> was due Nov 7 (overdue)
   assert.deepEqual(due.map(x => x.key), ['main', 'mots-c']);
-  assert.match(due[0].text, /^10 mg \(40 units\)$/);
+  assert.match(due[0].text, /^40 units \(10 mg\)$/, 'units first');
   assert.equal(due[1].overdue, true);
   assert.match(due[1].text, /^50 units \(1\.67 mg\)$/);
   assert.deepEqual(dueToday(data, d(11, 6, 7)), [], 'nothing due on Fri Nov 6');

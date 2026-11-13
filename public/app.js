@@ -54,6 +54,11 @@ function takenText(supply) {
 const fmtMg = mg => (mg != null && mg > 0 && mg < 1 ? `${trim(mg * 1000)} mcg` : `${trim(mg)} mg`);
 const fmtAmount = (v, unitName) => (unitName === 'units' ? `${trim(v)} unit${v === 1 ? '' : 's'}` : fmtMg(v));
 const shotLabel = m => `${m.name} ${fmtMg(m.doseMg)}`;
+// Doses always read units first (that's what you draw), then mg: "50 units (12.5 mg)".
+const unitsMg = (units, mg) => (units != null ? `${trim(units)} units (${fmtMg(mg)})` : fmtMg(mg));
+const shotText = s => `${s.name} ${unitsMg(s.units, s.doseMg)}`;
+// A planned dose from a vial of this strength: rounded units first.
+const planDose = (mg, conc) => (conc ? unitsMg(drawU(mgToUnits(mg, conc)), mg) : fmtMg(mg));
 const protocols = () => state.settings.protocols || [];
 // Medications: extras (sites, vial defaults) and custom injection sites.
 const lc = n => String(n || '').trim().toLowerCase();
@@ -613,10 +618,9 @@ function renderPlan() {
     const when = st.status === 'done' || st.status === 'current'
       ? `${fmtShort(st.startAt)} · ${st.shots} shot${st.shots === 1 ? '' : 's'}${st.status === 'current' && st.remaining ? ` (${st.remaining} to go)` : ''}`
       : `from ${fmtDay(st.startAt)}`;
-    const units = conc ? `${trim(drawU(mgToUnits(st.doseMg, conc)))} u` : '';
-    return `<tr class="${st.status}"><td>${trim(st.doseMg)} mg${st.doseMg >= plan.maxDose ? ' <span class="muted small">(max)</span>' : ''}</td><td>${when}</td><td class="num">${units}</td><td class="num"><span class="tag">${tag[st.status]}</span></td></tr>`;
+    return `<tr class="${st.status}"><td>${esc(planDose(st.doseMg, conc))}${st.doseMg >= plan.maxDose ? ' <span class="muted small">(max)</span>' : ''}</td><td>${when}</td><td class="num"><span class="tag">${tag[st.status]}</span></td></tr>`;
   }).join('');
-  $('planView').innerHTML = `<div class="plan-note">Next shot: <b>${trim(rec.doseMg)} mg</b>${conc ? ` = ${trim(drawU(mgToUnits(rec.doseMg, conc)))} units` : ''}. ${esc(rec.reason)}.</div>
+  $('planView').innerHTML = `<div class="plan-note">Next shot: <b>${esc(planDose(rec.doseMg, conc))}</b>. ${esc(rec.reason)}.</div>
     <table class="plan-table"><tbody>${rows}</tbody></table>
     <p class="muted small help">Units are for your current vial${conc ? ` (${trim(conc)} mg/mL)` : ''}. Future dates assume weekly shots. Step up ${trim(plan.step)} mg after every ${plan.every} shots, up to ${trim(plan.maxDose)} mg.</p>`;
 }
@@ -707,7 +711,7 @@ function renderShots() {
     money1.push(`${money0(totalSpent(supplies))} spent total`);
     $('shotSummary').innerHTML = `<div class="med-current">
       <div class="muted small">Current dose</div>
-      <div class="big">${esc(shotLabel(last))}${last.units != null ? ` = ${trim(last.units)} units` : ''}</div>
+      <div class="big">${esc(shotText(last))}</div>
       <div class="sub">${parts.join(' · ')}</div>
       <div class="sub small muted">${money1.join(' · ')}</div>
     </div>`;
@@ -741,7 +745,7 @@ function renderShots() {
     left = [left, takenText(s)].filter(Boolean).join('<br>');
     const lastFrom = [...shots].reverse().find(x => x.supplyId === s.id);
     const chips = [];
-    if (lastFrom && conc) chips.push(`${trim(lastFrom.doseMg)} mg = <b>${trim(drawU(mgToUnits(lastFrom.doseMg, conc)))} units</b>`);
+    if (lastFrom && conc) chips.push(`<b>${trim(drawU(mgToUnits(lastFrom.doseMg, conc)))} units</b> = ${trim(lastFrom.doseMg)} mg`);
     const c = lastFrom ? shotCost(lastFrom, s) : null;
     if (c != null) chips.push(`<b>${money(c)}</b> per ${trim(lastFrom.doseMg)} mg shot`);
     const frac = u.fraction ?? null;
@@ -770,7 +774,7 @@ function renderShots() {
         ? parts.map(pt => `${fmtMg(pt.doseMg)} from ${supplyLabel(supplyById(pt.supplyId))}`).join(' + ')
         : supplyLabel(supplyById(x.supplyId));
       return `<div class="shot">
-        <div class="what">${esc(shotLabel(x))}${x.units != null ? ` · ${trim(x.units)} units` : ''}${x.site ? ` · ${esc(x.site)}` : ''}</div>
+        <div class="what">${esc(shotText(x))}${x.site ? ` · ${esc(x.site)}` : ''}</div>
         <div class="meta">${fmtDay(x.t)} ${fmtTime(x.t)} · ${esc(from)}${c != null ? ` · ${money(c)}` : ''}${x.note ? ` · ${esc(x.note)}` : ''}</div>
         <button class="act edit" type="button" data-shot="${esc(x.id)}">Edit</button>
       </div>`;
@@ -786,7 +790,7 @@ function renderHistory() {
   // Weigh-ins and dose changes together, newest first.
   const rows = [];
   entries.forEach((e, i) => rows.push({ t: e.t, html: entryRow(e, entries[i - 1]) }));
-  (state.settings.showShots === false ? [] : doseChanges(mainList())).forEach(m => rows.push({ t: m.t, html: `<tr class="dose-row"><td colspan="4">${fmtDay(m.t)} — first <b>${esc(shotLabel(m))}</b> shot${m.units != null ? ` (${trim(m.units)} units)` : ''}</td></tr>` }));
+  (state.settings.showShots === false ? [] : doseChanges(mainList())).forEach(m => rows.push({ t: m.t, html: `<tr class="dose-row"><td colspan="4">${fmtDay(m.t)} — first <b>${esc(shotText(m))}</b> shot</td></tr>` }));
   rows.sort((a, b) => b.t - a.t);
   const shown = showAll ? rows : rows.slice(0, 15);
   const more = rows.length > 15
@@ -884,7 +888,7 @@ function updateSupplyCalc() {
   if (conc) {
     out.push(`<div class="line hl"><span>Strength</span><b>${trim(conc)} mg/mL</b></div>`);
     const doses = [2.5, 5, 7.5, 10, 12.5, 15].filter(d => d <= s.mg);
-    if (!protocolFor(protocols(), $('sName').value)) out.push(`<div class="muted small">Units to draw (U-100 syringe):</div><div class="units-table">${doses.map(d => `<span>${d} mg = <b>${trim(drawU(mgToUnits(d, conc)))}</b></span>`).join('')}</div>`);
+    if (!protocolFor(protocols(), $('sName').value)) out.push(`<div class="muted small">Units to draw (U-100 syringe):</div><div class="units-table">${doses.map(d => `<span><b>${trim(drawU(mgToUnits(d, conc)))} units</b> = ${d} mg</span>`).join('')}</div>`);
     if (s.price) out.push(`<div class="line"><span>Cost per mg</span><b>${money(s.price / s.mg)}</b></div>`);
   } else if (kind === 'pack' && s.count && s.price) {
     out.push(`<div class="line hl"><span>Cost per dose</span><b>${money(s.price / s.count)}</b></div>`);
@@ -1517,7 +1521,7 @@ async function quickLog(med) {
   if (!ids) { $('shotDialog').showModal(); return; }
   await refresh();
   const site = document.querySelector('input[name="hSite"]:checked')?.value;
-  toast(`Logged ${$('hName').value || sup?.name || ''} ${fmtMg(mg)}${site ? ` · ${site}` : ''}`, async () => {
+  toast(`Logged ${$('hName').value || sup?.name || ''} ${unitsMg(numOrNull('hUnits'), concentration(sup) && numOrNull('hUnits') != null ? unitsToMg(numOrNull('hUnits'), concentration(sup)) : mg)}${site ? ` · ${site}` : ''}`, async () => {
     for (const id of ids) await api('DELETE', `/api/shots/${encodeURIComponent(id)}`);
     await refresh();
   });
@@ -1573,7 +1577,7 @@ window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer
 
 function lastShotLine(last) {
   if (!last) return '';
-  return `Last shot ${fmtDay(last.t)} · ${esc(shotLabel(last))}${last.units != null ? ` (${trim(last.units)} units)` : ''}${last.site ? ` · ${esc(last.site)}` : ''}`;
+  return `Last shot ${fmtDay(last.t)} · ${esc(shotText(last))}${last.site ? ` · ${esc(last.site)}` : ''}`;
 }
 
 function useByText(ub) {
@@ -1594,7 +1598,7 @@ function renderBanners() {
     if (planOn()) {
       const rec = recommendDose(main, settings.plan, Date.now());
       const conc = currentConc();
-      const dose = `${trim(rec.doseMg)} mg${conc ? ` (${trim(drawU(mgToUnits(rec.doseMg, conc)))} units)` : ''}`;
+      const dose = planDose(rec.doseMg, conc);
       next = (rec.stepUp ? `<span class="stepup">Dose increase today: ${dose}</span> — up from ${trim(rec.from)} mg` : `Dose: <b>${dose}</b>`) + ` · ${next}`;
     }
     if (st.state === 'due-today') {
@@ -2310,7 +2314,7 @@ function renderNext() {
     const rec = planOn() ? recommendDose(main, state.settings.plan, now) : null;
     const mg = rec ? rec.doseMg : last.doseMg;
     const conc = currentConc();
-    rows.push({ name: last.name, due, state: s_, dose: `${fmtMg(mg)}${conc ? ` (${trim(drawU(mgToUnits(mg, conc)))} units)` : ''}${rec?.stepUp ? ' · dose increase' : ''}`, med: null });
+    rows.push({ name: last.name, due, state: s_, dose: `${planDose(mg, conc)}${rec?.stepUp ? ' · dose increase' : ''}`, med: null });
   }
   // Everything on its own schedule
   for (const p of protocols()) {
@@ -2386,7 +2390,7 @@ function medCard(name) {
   const ro = state.settings.reorderOn === false ? null : reorderPlan(state, Date.now(), state.settings.reorderLead ?? 10).find(r => lc(r.name) === lc(name) || (r.key === 'main' && isMain));
   if (ro) rows.push(`<span class="${ro.orderSoon ? 'warn-tag' : ''}">Supply lasts ~${ro.daysLeft} days · order by ${fmtDay(ro.orderBy)}</span>`);
   const last = shotsOf(doses(), name).at(-1);
-  if (last) rows.push(`Last dose: ${fmtDay(last.t)} · ${esc(fmtMg(last.doseMg))}${last.units != null ? ` (${trim(last.units)} units)` : ''}`);
+  if (last) rows.push(`Last dose: ${fmtDay(last.t)} · ${esc(unitsMg(last.units, last.doseMg))}`);
   const badge = p ? esc(describeProtocol(p, fmtAmount)) : isMain ? 'Main GLP-1' : 'New';
   return `<div class="med-card" data-med-card="${esc(name)}">
     <div class="mhead"><span class="mname">${esc(name)}</span><span class="badge">${badge}</span></div>

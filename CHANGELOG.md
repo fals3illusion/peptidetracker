@@ -4,6 +4,10 @@ All notable changes to PeptideTracker. Run `update` in the container to get the 
 
 ## [Unreleased]
 
+### Changed
+- Doses always read units first, then mg — e.g. “50 units (12.5 mg)” — in Next shots, banners, shot history,
+  medications, the dose plan, reminders and the weekly email.
+
 ## [1.0.0] - 2026-11-08
 
 ### First public release

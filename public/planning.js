@@ -58,7 +58,7 @@ export function dueToday(data, now = Date.now()) {
     if (st.state === 'due-today' || st.state === 'overdue') {
       const d = mainDose(data, now);
       const v = vialInUse(data, d.name), c = concentration(v);
-      out.push({ key: 'main', name: d.name, overdue: st.state === 'overdue', text: `${fmtMg(d.mg)}${c ? ` (${r2(draw(mgToUnits(d.mg, c)))} units)` : ''}` });
+      out.push({ key: 'main', name: d.name, overdue: st.state === 'overdue', text: c ? `${r2(draw(mgToUnits(d.mg, c)))} units (${fmtMg(d.mg)})` : fmtMg(d.mg) });
     }
   }
   for (const p of protocols(data)) {
